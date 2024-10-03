@@ -1,0 +1,19 @@
+info:
+  contact: {}
+paths:
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: register users in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: register endpoint
+      tags:
+      - example
+swagger: "2.0"
