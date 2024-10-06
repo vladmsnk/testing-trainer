@@ -1,9 +1,6 @@
 http:
   host: "localhost"
   port: 7001
-grpc:
-  host: "localhost"
-  port: 7002
 postgres:
   host: "localhost"
   port: 8888

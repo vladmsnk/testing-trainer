@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	swaggerfiles "github.com/swaggo/files"
@@ -18,11 +19,11 @@ import (
 func setupRouter(userUc user.UseCase, habitUc habit.UseCase) *gin.Engine {
 	r := gin.Default()
 
-	docs.SwaggerInfo.BasePath = "api/v1"
+	docs.SwaggerInfo.BasePath = "/api/v1"
 	authHandlers := r.Group("/api/v1/auth")
 	auth.NewAuthHandler(authHandlers, userUc)
 
-	protectedHabitHandlers := r.Group("/api/v1/habit")
+	protectedHabitHandlers := r.Group("/api/v1/tracker")
 	protectedHabitHandlers.Use(middlewares.AuthMiddleware())
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))

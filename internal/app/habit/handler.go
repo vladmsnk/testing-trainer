@@ -2,9 +2,8 @@ package habit
 
 import (
 	"context"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"testing_trainer/internal/entities"
 	"testing_trainer/utils/token"
 )
@@ -23,25 +22,35 @@ func NewHabitHandler(r *gin.RouterGroup, uc UseCase) {
 	r.POST("/habits", h.CreateHabit)
 }
 
+// CreateHabit godoc
+// @Summary create habit endpoint
+// @Schemes
+// @Description Creates habit in the system
+// @Tags example
+// @Accept json
+// @Produce json
+// @Param requestBody body CreateHabitRequest true "Create habit"
+// @Success 200 {string} ok
+// @Router /tracker/habits [post]
 func (h *Handler) CreateHabit(c *gin.Context) {
-	var habit entities.Habit
+	var createHabit entities.Habit
 
 	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 	}
 
-	if err := c.ShouldBindJSON(&habit); err != nil {
+	if err := c.ShouldBindJSON(&createHabit); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := habit.Validate(); err != nil {
+	if err := createHabit.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
 
-	_, err = h.uc.CreateHabit(c, username, habit)
+	_, err = h.uc.CreateHabit(c, username, createHabit)
 	if err != nil {
-		//todo handle error
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Habit created"})

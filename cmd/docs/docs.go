@@ -15,9 +15,9 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/register": {
+        "/auth/register": {
             "post": {
-                "description": "register users in the system",
+                "description": "Registers users in the system",
                 "consumes": [
                     "application/json"
                 ],
@@ -28,6 +28,17 @@ const docTemplate = `{
                     "example"
                 ],
                 "summary": "register endpoint",
+                "parameters": [
+                    {
+                        "description": "Register user",
+                        "name": "requestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.RegisterRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -35,6 +46,88 @@ const docTemplate = `{
                             "type": "string"
                         }
                     }
+                }
+            }
+        },
+        "/tracker/habits": {
+            "post": {
+                "description": "Creates habit in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "create habit endpoint",
+                "parameters": [
+                    {
+                        "description": "Create habit",
+                        "name": "requestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/habit.CreateHabitRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "auth.RegisterRequest": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string",
+                    "example": "john@example.com"
+                },
+                "password": {
+                    "type": "string",
+                    "example": "securepassword"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
+                }
+            }
+        },
+        "habit.CreateHabitRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Drink 2 liters of water every day"
+                },
+                "duration_in_days": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "frequency": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Drink water"
+                },
+                "num_of_periods": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "start_tracking_at": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
                 }
             }
         }

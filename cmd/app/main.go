@@ -1,8 +1,12 @@
 package main
 
 import (
+	"database/sql"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"strconv"
+	"testing_trainer/scripts/migrations"
 
 	"testing_trainer/config"
 	"testing_trainer/internal/storage"
@@ -25,13 +29,30 @@ func main() {
 		log.Fatal(err)
 	}
 
-	strg := storage.NewStorage(pool)
-	habitUc := habit.New(strg)
-	authUc := user.New(strg)
+	db := GetSqlDBFromPgxPool(pool)
+	// Apply migrations
+	if err := migrations.ApplyMigrations(db); err != nil {
+		log.Fatalf("failed to apply migrations: %v", err)
+	}
+
+	// storages
+	var (
+		store = storage.NewStorage(pool)
+	)
+
+	// usecases
+	var (
+		habitUc = habit.New(store)
+		authUc  = user.New(store)
+	)
 
 	router := setupRouter(authUc, habitUc)
 	err = router.Run(config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port))
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func GetSqlDBFromPgxPool(pool *pgxpool.Pool) *sql.DB {
+	return stdlib.OpenDB(*pool.Config().ConnConfig)
 }

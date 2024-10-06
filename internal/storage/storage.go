@@ -59,9 +59,6 @@ returning id;
 
 	err := tx.QueryRow(ctx, query, username, habit.Name, habit.Description).Scan(&habitID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return 0, ErrNotFound
-		}
 		return 0, fmt.Errorf("tx.Exec user_id=%s habit=%s description=%s: %w", username, habit.Name, habit.Description, err)
 	}
 
@@ -103,12 +100,12 @@ select username, email, password_hash from users where username = $1;
 	return user, nil
 }
 
-func (s *Storage) CreateUser(ctx context.Context, user entities.User) error {
+func (s *Storage) CreateUser(ctx context.Context, user entities.RegisterUser) error {
 	query := `
 insert into users (username, email, password_hash) 
 values ($1, $2, $3);
 `
-	_, err := s.db.Exec(ctx, query, user.Name, user.Email, user.Password)
+	_, err := s.db.Exec(ctx, query, user.Name, user.Email, user.PasswordHash)
 	if err != nil {
 		return fmt.Errorf("s.db.Exec: %w", err)
 	}

@@ -1,11 +1,52 @@
+definitions:
+  auth.RegisterRequest:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: securepassword
+        type: string
+      username:
+        example: john_doe
+        type: string
+    type: object
+  habit.CreateHabitRequest:
+    properties:
+      description:
+        example: Drink 2 liters of water every day
+        type: string
+      duration_in_days:
+        example: 30
+        type: integer
+      frequency:
+        example: 1
+        type: integer
+      name:
+        example: Drink water
+        type: string
+      num_of_periods:
+        example: 2
+        type: integer
+      start_tracking_at:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+    type: object
 info:
   contact: {}
 paths:
-  /register:
+  /auth/register:
     post:
       consumes:
       - application/json
-      description: register users in the system
+      description: Registers users in the system
+      parameters:
+      - description: Register user
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RegisterRequest'
       produces:
       - application/json
       responses:
@@ -14,6 +55,28 @@ paths:
           schema:
             type: string
       summary: register endpoint
+      tags:
+      - example
+  /tracker/habits:
+    post:
+      consumes:
+      - application/json
+      description: Creates habit in the system
+      parameters:
+      - description: Create habit
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/habit.CreateHabitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      summary: create habit endpoint
       tags:
       - example
 swagger: "2.0"

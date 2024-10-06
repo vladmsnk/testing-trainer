@@ -1,22 +1,23 @@
 package config
 
 import (
-	yaml "gopkg.in/yaml.v3"
 	"os"
-	"strconv"
 
-	"testing_trainer/utils/grpc_server"
-	"testing_trainer/utils/http_server"
+	"gopkg.in/yaml.v3"
+	"strconv"
 )
 
 const pathToConfig = "etc/config.yaml"
 
 type Config struct {
-	HTTP http_server.Config `yaml:"http"`
-	GRPC grpc_server.Config `yaml:"grpc"`
-	PG   Postgres           `yaml:"postgres"`
+	HTTP Http     `yaml:"http"`
+	PG   Postgres `yaml:"postgres"`
 }
 
+type Http struct {
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
 type Postgres struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`

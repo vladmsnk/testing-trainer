@@ -17,12 +17,12 @@ var (
 
 type UseCase interface {
 	GetUserByUsername(ctx context.Context, username string) (entities.User, error)
-	RegisterUser(ctx context.Context, user entities.User) error
+	RegisterUser(ctx context.Context, user entities.RegisterUser) error
 }
 
 type Storage interface {
 	GetUserByUsername(ctx context.Context, username string) (entities.User, error)
-	CreateUser(ctx context.Context, user entities.User) error
+	CreateUser(ctx context.Context, user entities.RegisterUser) error
 }
 
 type Implementation struct {
@@ -45,7 +45,7 @@ func (i *Implementation) GetUserByUsername(ctx context.Context, username string)
 	return user, nil
 }
 
-func (i *Implementation) RegisterUser(ctx context.Context, user entities.User) error {
+func (i *Implementation) RegisterUser(ctx context.Context, user entities.RegisterUser) error {
 	_, err := i.storage.GetUserByUsername(ctx, user.Name)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
@@ -55,7 +55,7 @@ func (i *Implementation) RegisterUser(ctx context.Context, user entities.User) e
 		return ErrUserAlreadyExists
 	}
 
-	user.Password, err = utils.HashPassword(user.Password)
+	user.PasswordHash, err = utils.HashPassword(user.PasswordHash)
 	if err != nil {
 		return fmt.Errorf("password.HashPassword: %w", err)
 	}
