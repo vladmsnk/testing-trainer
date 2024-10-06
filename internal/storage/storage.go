@@ -71,13 +71,13 @@ func (s *Storage) createGoalTx(ctx context.Context, tx pgx.Tx, habitID int64, go
 	}
 
 	query := `
-INSERT INTO goals (habit_id, frequency, duration, num_of_periods, start_tracking_at)
-VALUES ($1, $2, $3, $4, $5);
+INSERT INTO goals (habit_id, frequency, duration, num_of_periods, start_tracking_at, end_tracking_at)
+VALUES ($1, $2, $3, $4, $5, $6);
 `
 
-	_, err := tx.Exec(ctx, query, habitID, goal.Frequency, goal.Duration, goal.NumOfPeriods, goal.StartTrackingAt)
+	_, err := tx.Exec(ctx, query, habitID, goal.Frequency, goal.Duration, goal.NumOfPeriods, goal.StartTrackingAt, goal.EndTrackingAt)
 	if err != nil {
-		return fmt.Errorf("tx.Exec habit_id=%d frequency=%d duration=%d num_of_periods=%d start_tracking_at=%s: %w", habitID, goal.Frequency, goal.Duration, goal.NumOfPeriods, goal.StartTrackingAt, err)
+		return fmt.Errorf("tx.Exec habit_id=%d frequency=%d duration=%d num_of_periods=%d start_tracking_at=%s end_tracking_at=%s: %w", habitID, goal.Frequency, goal.Duration, goal.NumOfPeriods, goal.StartTrackingAt, goal.EndTrackingAt, err)
 	}
 
 	return nil
@@ -111,4 +111,40 @@ values ($1, $2, $3);
 	}
 
 	return nil
+}
+
+func (s *Storage) ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error) {
+	query := `
+select 
+    h.id as id, 
+    h.name as name, 
+    h.description as description,
+    g.duration as duration, 
+    g.frequency as frequency,
+    g.num_of_periods as num_of_periods,
+    g.start_tracking_at as start_tracking_at,
+    g.end_tracking_at as end_tracking_at
+from habits h 
+    left join goals g on h.id = g.habit_id where h.username = $1;
+`
+
+	rows, err := s.db.Query(ctx, query, username)
+	if err != nil {
+		return nil, fmt.Errorf("s.db.Query: %w", err)
+	}
+	defer rows.Close()
+
+	var result []entities.Habit
+	for rows.Next() {
+		var daoHabit habit
+
+		err := rows.Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.duration, &daoHabit.frequency, &daoHabit.numOfPeriods, &daoHabit.startTrackingAt, &daoHabit.endTrackingAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		result = append(result, toEntityHabit(daoHabit))
+	}
+
+	return result, nil
 }

@@ -16,6 +16,7 @@ type Handler struct {
 
 type UseCase interface {
 	RegisterUser(ctx context.Context, user entities.RegisterUser) error
+	Login(ctx context.Context, user entities.User) (entities.Token, error)
 }
 
 func NewAuthHandler(r *gin.RouterGroup, uc UseCase) {
@@ -24,6 +25,7 @@ func NewAuthHandler(r *gin.RouterGroup, uc UseCase) {
 	}
 
 	r.POST("/register", h.Register)
+	r.POST("/login", h.Login)
 }
 
 // Register godoc
@@ -35,6 +37,7 @@ func NewAuthHandler(r *gin.RouterGroup, uc UseCase) {
 // @Produce json
 // @Param requestBody body RegisterRequest true "Register user"
 // @Success 200 {string} ok
+// @Failure 409 {string} string "User already exists"
 // @Router /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 
@@ -63,4 +66,41 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	return
+}
+
+// Login godoc
+// @Summary login endpoint
+// @Schemes
+// @Description Authenticates users and provides a token
+// @Tags example
+// @Accept json
+// @Produce json
+// @Param requestBody body LoginRequest true "Login user"
+// @Success 200 {string} token "JWT Token"
+// @Failure 401 {string} string "Unauthorized"
+// @Router /auth/login [post]
+func (h *Handler) Login(c *gin.Context) {
+	var req LoginRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, err := h.uc.Login(c, toEntityUser(req))
+	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": toLoginResponse(token)})
 }

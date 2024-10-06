@@ -15,6 +15,46 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/login": {
+            "post": {
+                "description": "Authenticates users and provides a token",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "login endpoint",
+                "parameters": [
+                    {
+                        "description": "Login user",
+                        "name": "requestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/auth.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "JWT Token",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/register": {
             "post": {
                 "description": "Registers users in the system",
@@ -45,11 +85,62 @@ const docTemplate = `{
                         "schema": {
                             "type": "string"
                         }
+                    },
+                    "409": {
+                        "description": "User already exists",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
         },
         "/tracker/habits": {
+            "get": {
+                "description": "Lists all habits for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "list user habits endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user habits",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/habit.ListUserHabitsResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Creates habit in the system",
                 "consumes": [
@@ -71,11 +162,30 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/habit.CreateHabitRequest"
                         }
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -85,6 +195,19 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "auth.LoginRequest": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string",
+                    "example": "securepassword"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
+                }
+            }
+        },
         "auth.RegisterRequest": {
             "type": "object",
             "properties": {
@@ -128,6 +251,58 @@ const docTemplate = `{
                 "start_tracking_at": {
                     "type": "string",
                     "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        },
+        "habit.ListUserHabitsResponse": {
+            "type": "object",
+            "properties": {
+                "habits": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/habit.ResponseHabit"
+                    }
+                },
+                "username": {
+                    "type": "string",
+                    "example": "john_doe"
+                }
+            }
+        },
+        "habit.ResponseGoal": {
+            "type": "object",
+            "properties": {
+                "duration_in_days": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "frequency": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "num_of_periods": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "start_tracking_at": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
+                }
+            }
+        },
+        "habit.ResponseHabit": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Drink 2 liters of water every day"
+                },
+                "goal": {
+                    "$ref": "#/definitions/habit.ResponseGoal"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Drink water"
                 }
             }
         }

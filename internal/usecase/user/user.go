@@ -18,6 +18,7 @@ var (
 type UseCase interface {
 	GetUserByUsername(ctx context.Context, username string) (entities.User, error)
 	RegisterUser(ctx context.Context, user entities.RegisterUser) error
+	Login(ctx context.Context, user entities.User) (entities.Token, error)
 }
 
 type Storage interface {

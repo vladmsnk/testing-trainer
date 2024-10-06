@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -10,14 +9,6 @@ type Habit struct {
 	Description string `json:"description"`
 	Goal        *Goal  `json:"goal,omitempty"`        // Goal can be nil (empty)
 	IsArchived  bool   `json:"is_archived,omitempty"` // IsArchived can be false (empty)
-}
-
-func (h *Habit) Validate() error {
-	if h.Name == "" {
-		return fmt.Errorf("habit name must be specified")
-	}
-
-	return nil
 }
 
 type Goal struct {

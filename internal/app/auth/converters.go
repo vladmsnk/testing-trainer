@@ -9,3 +9,17 @@ func toEntityRegisterUser(req RegisterRequest) entities.RegisterUser {
 		PasswordHash: req.Password,
 	}
 }
+
+func toEntityUser(req LoginRequest) entities.User {
+	return entities.User{
+		Name:     req.Username,
+		Password: req.Password,
+	}
+}
+
+func toLoginResponse(token entities.Token) LoginResponse {
+	return LoginResponse{
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+	}
+}

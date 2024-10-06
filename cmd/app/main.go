@@ -42,8 +42,8 @@ func main() {
 
 	// usecases
 	var (
-		habitUc = habit.New(store)
 		authUc  = user.New(store)
+		habitUc = habit.New(store, authUc)
 	)
 
 	router := setupRouter(authUc, habitUc)

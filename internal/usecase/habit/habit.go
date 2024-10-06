@@ -9,6 +9,7 @@ import (
 
 type UseCase interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
+	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 }
 
 type UserUseCase interface {
@@ -17,6 +18,7 @@ type UserUseCase interface {
 
 type Storage interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
+	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 }
 
 type Implementation struct {
@@ -24,8 +26,8 @@ type Implementation struct {
 	userUc  UserUseCase
 }
 
-func New(storage Storage) *Implementation {
-	return &Implementation{storage: storage}
+func New(storage Storage, userUc UserUseCase) *Implementation {
+	return &Implementation{storage: storage, userUc: userUc}
 }
 
 func (i *Implementation) CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error) {
@@ -40,4 +42,18 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 	}
 
 	return createdHabitId, nil
+}
+
+func (i *Implementation) ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error) {
+	_, err := i.userUc.GetUserByUsername(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+	}
+
+	userHabits, err := i.storage.ListUserHabits(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("i.storage.ListUserHabits: %w", err)
+	}
+
+	return userHabits, nil
 }

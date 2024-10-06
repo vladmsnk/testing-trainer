@@ -1,4 +1,13 @@
 definitions:
+  auth.LoginRequest:
+    properties:
+      password:
+        example: securepassword
+        type: string
+      username:
+        example: john_doe
+        type: string
+    type: object
   auth.RegisterRequest:
     properties:
       email:
@@ -32,9 +41,71 @@ definitions:
         example: "2024-01-01T00:00:00Z"
         type: string
     type: object
+  habit.ListUserHabitsResponse:
+    properties:
+      habits:
+        items:
+          $ref: '#/definitions/habit.ResponseHabit'
+        type: array
+      username:
+        example: john_doe
+        type: string
+    type: object
+  habit.ResponseGoal:
+    properties:
+      duration_in_days:
+        example: 30
+        type: integer
+      frequency:
+        example: 1
+        type: integer
+      num_of_periods:
+        example: 2
+        type: integer
+      start_tracking_at:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+    type: object
+  habit.ResponseHabit:
+    properties:
+      description:
+        example: Drink 2 liters of water every day
+        type: string
+      goal:
+        $ref: '#/definitions/habit.ResponseGoal'
+      name:
+        example: Drink water
+        type: string
+    type: object
 info:
   contact: {}
 paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates users and provides a token
+      parameters:
+      - description: Login user
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT Token
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: login endpoint
+      tags:
+      - example
   /auth/register:
     post:
       consumes:
@@ -54,10 +125,44 @@ paths:
           description: OK
           schema:
             type: string
+        "409":
+          description: User already exists
+          schema:
+            type: string
       summary: register endpoint
       tags:
       - example
   /tracker/habits:
+    get:
+      consumes:
+      - application/json
+      description: Lists all habits for the authenticated user
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user habits
+          schema:
+            items:
+              $ref: '#/definitions/habit.ListUserHabitsResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: list user habits endpoint
+      tags:
+      - example
     post:
       consumes:
       - application/json
@@ -69,11 +174,24 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/habit.CreateHabitRequest'
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
       produces:
       - application/json
       responses:
         "200":
           description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
           schema:
             type: string
       summary: create habit endpoint

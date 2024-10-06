@@ -41,6 +41,14 @@ type LoginRequest struct {
 	Password string `json:"password" example:"securepassword"`
 }
 
+func (r *LoginRequest) Validate() error {
+	if len(r.Username) == 0 {
+		return errors.New("username cannot be empty")
+	}
+
+	return nil
+}
+
 type RegisterResponse struct{}
 
 type LoginResponse struct {
