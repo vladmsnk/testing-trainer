@@ -7,7 +7,7 @@ import (
 	"strconv"
 )
 
-const pathToConfig = "etc/config.yaml"
+const pathToConfig = "./etc/config.yaml"
 
 type Config struct {
 	HTTP Http     `yaml:"http"`

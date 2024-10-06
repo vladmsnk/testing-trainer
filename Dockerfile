@@ -1,4 +1,4 @@
-FROM golang:1.22 as build
+FROM golang:1.23.1 as build
 
 WORKDIR /cmd
 
@@ -13,7 +13,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/app -v ./cmd/app
 FROM scratch as final
 WORKDIR /
 COPY --from=build /bin/app /app
+COPY etc/config.yaml /etc/config.yaml
+
 EXPOSE 7001
-EXPOSE 7002
 
 ENTRYPOINT ["/app"]
