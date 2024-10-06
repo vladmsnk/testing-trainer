@@ -77,6 +77,27 @@ definitions:
         example: Drink water
         type: string
     type: object
+  habit.UpdateHabitRequest:
+    properties:
+      description:
+        example: Drink 2 liters of water every day
+        type: string
+      duration_in_days:
+        example: 30
+        type: integer
+      frequency:
+        example: 1
+        type: integer
+      name:
+        example: Drink water
+        type: string
+      num_of_periods:
+        example: 2
+        type: integer
+      start_tracking_at:
+        example: "2024-01-01T00:00:00Z"
+        type: string
+    type: object
 info:
   contact: {}
 paths:
@@ -133,36 +154,6 @@ paths:
       tags:
       - example
   /tracker/habits:
-    get:
-      consumes:
-      - application/json
-      description: Lists all habits for the authenticated user
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: List of user habits
-          schema:
-            items:
-              $ref: '#/definitions/habit.ListUserHabitsResponse'
-            type: array
-        "401":
-          description: Unauthorized
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: list user habits endpoint
-      tags:
-      - example
     post:
       consumes:
       - application/json
@@ -195,6 +186,81 @@ paths:
           schema:
             type: string
       summary: create habit endpoint
+      tags:
+      - example
+    put:
+      consumes:
+      - application/json
+      description: Updates a habit for the authenticated user
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Update habit
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/habit.UpdateHabitRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Habit updated
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: update habit endpoint
+      tags:
+      - example
+  /tracker/habits/{username}:
+    get:
+      consumes:
+      - application/json
+      description: Lists all habits for the authenticated user
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user habits
+          schema:
+            items:
+              $ref: '#/definitions/habit.ListUserHabitsResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: list user habits endpoint
       tags:
       - example
 swagger: "2.0"

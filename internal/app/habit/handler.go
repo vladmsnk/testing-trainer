@@ -2,10 +2,12 @@ package habit
 
 import (
 	"context"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 	"testing_trainer/internal/entities"
+	"testing_trainer/internal/usecase/habit"
 	"testing_trainer/utils/token"
 )
 
@@ -22,7 +24,7 @@ func NewHabitHandler(r *gin.RouterGroup, uc UseCase) {
 	h := Handler{uc: uc}
 
 	r.POST("/habits", h.CreateHabit)
-	r.GET("/habits", h.ListUserHabits)
+	r.GET("/habits/:username", h.ListUserHabits)
 }
 
 // CreateHabit godoc
@@ -56,10 +58,14 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 
 	id, err := h.uc.CreateHabit(c, username, toEntityHabit(createHabitRequest))
 	if err != nil {
+		if errors.Is(err, habit.ErrHabitAlreadyExists) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"id": strconv.Itoa(int(id))})
+	c.JSON(http.StatusCreated, gin.H{"HabitId": strconv.Itoa(int(id))})
 }
 
 // ListUserHabits godoc
@@ -69,12 +75,19 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 // @Tags example
 // @Accept json
 // @Produce json
+// @Param username path string true "Username"
 // @Param Authorization header string true "Bearer"
 // @Success 200 {array} ListUserHabitsResponse "List of user habits"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /tracker/habits [get]
+// @Router /tracker/habits/{username} [get]
 func (h *Handler) ListUserHabits(c *gin.Context) {
+	username := c.Param("username")
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username is required"})
+		return
+	}
+
 	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
@@ -86,4 +99,38 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, toListUserHabitsResponse(username, habits))
+}
+
+// UpdateHabit godoc
+// @Summary update habit endpoint
+// @Schemes
+// @Description Updates a habit for the authenticated user
+// @Tags example
+// @Accept json
+// @Produce json
+// @Param username path string true "Username"
+// @Param Authorization header string true "Bearer"
+// @Param requestBody body UpdateHabitRequest true "Update habit"
+// @Success 200 {string} string "Habit updated"
+// @Failure 400 {string} string "Bad Request"
+// @Failure 401 {string} string "Unauthorized"
+// @Router /tracker/habits [put]
+func (h *Handler) UpdateHabit(c *gin.Context) {
+	_, err := token.ExtractUsernameFromToken(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	}
+
+	var updateHabitRequest UpdateHabitRequest
+	if err := c.ShouldBindJSON(&updateHabitRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := updateHabitRequest.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Habit updated"})
+
 }

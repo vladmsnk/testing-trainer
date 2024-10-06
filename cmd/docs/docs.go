@@ -96,8 +96,8 @@ const docTemplate = `{
             }
         },
         "/tracker/habits": {
-            "get": {
-                "description": "Lists all habits for the authenticated user",
+            "put": {
+                "description": "Updates a habit for the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -107,34 +107,47 @@ const docTemplate = `{
                 "tags": [
                     "example"
                 ],
-                "summary": "list user habits endpoint",
+                "summary": "update habit endpoint",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "Bearer",
                         "name": "Authorization",
                         "in": "header",
                         "required": true
+                    },
+                    {
+                        "description": "Update habit",
+                        "name": "requestBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/habit.UpdateHabitRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of user habits",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/habit.ListUserHabitsResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
+                        "description": "Habit updated",
                         "schema": {
                             "type": "string"
                         }
                     },
-                    "500": {
-                        "description": "Internal Server Error",
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -180,6 +193,60 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tracker/habits/{username}": {
+            "get": {
+                "description": "Lists all habits for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "list user habits endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Username",
+                        "name": "username",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user habits",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/habit.ListUserHabitsResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -303,6 +370,35 @@ const docTemplate = `{
                 "name": {
                     "type": "string",
                     "example": "Drink water"
+                }
+            }
+        },
+        "habit.UpdateHabitRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string",
+                    "example": "Drink 2 liters of water every day"
+                },
+                "duration_in_days": {
+                    "type": "integer",
+                    "example": 30
+                },
+                "frequency": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Drink water"
+                },
+                "num_of_periods": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "start_tracking_at": {
+                    "type": "string",
+                    "example": "2024-01-01T00:00:00Z"
                 }
             }
         }

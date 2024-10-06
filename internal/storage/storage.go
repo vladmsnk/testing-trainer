@@ -125,7 +125,8 @@ select
     g.start_tracking_at as start_tracking_at,
     g.end_tracking_at as end_tracking_at
 from habits h 
-    left join goals g on h.id = g.habit_id where h.username = $1;
+    left join goals g on h.id = g.habit_id 
+where h.username = $1;
 `
 
 	rows, err := s.db.Query(ctx, query, username)
@@ -147,4 +148,65 @@ from habits h
 	}
 
 	return result, nil
+}
+
+func (s *Storage) GetHabitByName(ctx context.Context, username, habitName string) (entities.Habit, error) {
+	query := `
+select 
+    h.id as id, 
+    h.name as name, 
+    h.description as description,
+    g.duration as duration, 
+    g.frequency as frequency,
+    g.num_of_periods as num_of_periods,
+    g.start_tracking_at as start_tracking_at,
+    g.end_tracking_at as end_tracking_at
+from habits h 
+    left join goals g on h.id = g.habit_id 
+where h.username = $1 
+  and h.name = $2;`
+
+	var daoHabit habit
+
+	err := s.db.QueryRow(ctx, query, username, habitName).Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.duration, &daoHabit.frequency, &daoHabit.numOfPeriods, &daoHabit.startTrackingAt, &daoHabit.endTrackingAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.Habit{}, ErrNotFound
+		}
+		return entities.Habit{}, fmt.Errorf("s.db.QueryRow: %w", err)
+	}
+
+	return toEntityHabit(daoHabit), nil
+}
+
+func (s *Storage) UpdateHabit(ctx context.Context, username string, habit entities.Habit) error {
+	return nil
+}
+
+func (s *Storage) getHabitGoal(ctx context.Context, habitName string) (entities.Goal, error) {
+	query := `
+select frequency, duration, num_of_periods, start_tracking_at, end_tracking_at from goals where habit_id = (select id from habits where name = $1);
+	`
+	var daoGoal goal
+
+	err := s.db.QueryRow(ctx, query, habitName).Scan(&daoGoal.frequency, &daoGoal.duration, &daoGoal.numOfPeriods, &daoGoal.startTrackingAt, &daoGoal.endTrackingAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.Goal{}, ErrNotFound
+		}
+		return entities.Goal{}, fmt.Errorf("s.db.QueryRow: %w", err)
+	}
+
+	return toEntityGoal(daoGoal), nil
+}
+
+func (s *Storage) deactivateGoalByID(ctx context.Context, id int64) error {
+	query := `update goals set is_active = false where id = $1;`
+
+	_, err := s.db.Exec(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("s.db.Exec: %w", err)
+	}
+
+	return nil
 }

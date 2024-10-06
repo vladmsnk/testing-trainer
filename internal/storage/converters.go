@@ -20,5 +20,8 @@ func toEntityHabit(daoHabit habit) entities.Habit {
 		Description: daoHabit.description,
 		Goal:        &goal,
 	}
+}
 
+func toEntityGoal(daoGoal goal) entities.Goal {
+	return entities.NewGoal(daoGoal.frequency, time.Duration(daoGoal.duration), daoGoal.numOfPeriods, daoGoal.startTrackingAt)
 }
