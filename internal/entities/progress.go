@@ -7,3 +7,8 @@ type Progress struct {
 	MostLongestStreak     int
 	CurrentStreak         int
 }
+
+type ProgressWithGoal struct {
+	Progress
+	Goal
+}

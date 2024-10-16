@@ -3,6 +3,7 @@ package progress
 import (
 	"context"
 	"fmt"
+	
 	"testing_trainer/internal/entities"
 )
 
@@ -36,18 +37,26 @@ func New(userUc UserUseCase, storage Storage) *Implementation {
 	}
 }
 
-func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitName string) (entities.Progress, error) {
+func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitName string) (entities.ProgressWithGoal, error) {
 	_, err := i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
-		return entities.Progress{}, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+		return entities.ProgressWithGoal{}, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
 	}
 
-	_, err = i.storage.GetHabitGoal(ctx, habitName)
+	goal, err := i.storage.GetHabitGoal(ctx, habitName)
 	if err != nil {
-		return entities.Progress{}, fmt.Errorf("i.storage.GetHabitGoal: %w", err)
+		return entities.ProgressWithGoal{}, fmt.Errorf("i.storage.GetHabitGoal: %w", err)
 	}
 
-	return entities.Progress{}, nil
+	progress, err := i.storage.GetCurrentProgress(ctx, goal.Id)
+	if err != nil {
+		return entities.ProgressWithGoal{}, fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
+	}
+
+	return entities.ProgressWithGoal{
+		Progress: progress,
+		Goal:     goal,
+	}, nil
 }
 
 func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitName string) error {

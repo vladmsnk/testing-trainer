@@ -227,40 +227,6 @@ paths:
       summary: update habit endpoint
       tags:
       - example
-  /tracker/habits/{habitName}/progress:
-    post:
-      consumes:
-      - application/json
-      description: Adds progress to the habit
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
-      - description: Habit name
-        in: path
-        name: habitName
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            type: string
-        "500":
-          description: Internal Server Error
-          schema:
-            type: string
-      summary: add progress endpoint
-      tags:
-      - example
   /tracker/habits/{username}:
     get:
       consumes:
@@ -295,6 +261,73 @@ paths:
           schema:
             type: string
       summary: list user habits endpoint
+      tags:
+      - example
+  /tracker/progress/{habitName}:
+    get:
+      consumes:
+      - application/json
+      description: Get progress of the habit
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Habit name
+        in: path
+        name: habitName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: get progress endpoint
+      tags:
+      - example
+    post:
+      consumes:
+      - application/json
+      description: Adds progress to the habit
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Habit name
+        in: path
+        name: habitName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: add progress endpoint
       tags:
       - example
 swagger: "2.0"
