@@ -2,26 +2,32 @@ package storage
 
 import (
 	"testing_trainer/internal/entities"
-	"time"
 )
 
 func toEntityHabit(daoHabit habit) entities.Habit {
-	if !daoHabit.frequency.Valid && !daoHabit.duration.Valid && !daoHabit.numOfPeriods.Valid && !daoHabit.startTrackingAt.Valid && !daoHabit.endTrackingAt.Valid {
+	if !daoHabit.frequencyType.Valid && !daoHabit.timesPerFrequency.Valid && !daoHabit.totalTrackingDays.Valid {
 		return entities.Habit{
 			Name:        daoHabit.name,
 			Description: daoHabit.description,
 		}
 	}
 
-	goal := entities.NewGoal(int(daoHabit.frequency.Int64), time.Duration(daoHabit.duration.Int64), int(daoHabit.numOfPeriods.Int64), daoHabit.startTrackingAt.Time)
-
 	return entities.Habit{
 		Name:        daoHabit.name,
 		Description: daoHabit.description,
-		Goal:        &goal,
+		Goal: &entities.Goal{
+			TotalTrackingDays: daoHabit.totalTrackingDays.V,
+			TimesPerFrequency: daoHabit.timesPerFrequency.V,
+			FrequencyType:     entities.FrequencyTypeFromString(daoHabit.frequencyType.V),
+		},
 	}
 }
 
 func toEntityGoal(daoGoal goal) entities.Goal {
-	return entities.NewGoal(daoGoal.frequency, time.Duration(daoGoal.duration), daoGoal.numOfPeriods, daoGoal.startTrackingAt)
+	return entities.Goal{
+		Id:                daoGoal.id,
+		TotalTrackingDays: daoGoal.totalTrackingDays,
+		TimesPerFrequency: daoGoal.timesPerFrequency,
+		FrequencyType:     entities.FrequencyTypeFromString(daoGoal.frequencyType),
+	}
 }

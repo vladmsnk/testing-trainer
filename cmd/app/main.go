@@ -6,6 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"strconv"
+	"testing_trainer/internal/usecase/progress"
 	"testing_trainer/scripts/migrations"
 
 	"testing_trainer/config"
@@ -42,11 +43,12 @@ func main() {
 
 	// usecases
 	var (
-		authUc  = user.New(store)
-		habitUc = habit.New(store, authUc)
+		authUc    = user.New(store)
+		habitUc   = habit.New(store, authUc)
+		processUc = progress.New(authUc, store)
 	)
 
-	router := setupRouter(authUc, habitUc)
+	router := setupRouter(authUc, habitUc, processUc)
 	err = router.Run(config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port))
 	if err != nil {
 		log.Fatal(err)

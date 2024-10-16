@@ -1,23 +1,54 @@
 package entities
 
-import (
-	"time"
-)
-
 type Habit struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Goal        *Goal  `json:"goal,omitempty"`        // Goal can be nil (empty)
-	IsArchived  bool   `json:"is_archived,omitempty"` // IsArchived can be false (empty)
+	Name        string
+	Description string
+	Goal        *Goal
+	IsArchived  bool
 }
 
 type Goal struct {
-	Frequency       int           `json:"frequency"`
-	Duration        time.Duration `json:"duration"`
-	NumOfPeriods    int           `json:"num_of_periods"`
-	StartTrackingAt time.Time     `json:"start_tracking_at"`
-	EndTrackingAt   time.Time     `json:"end_tracking_at"`
-	IsActive        bool          `json:"is_active,omitempty"`
+	Id                int
+	FrequencyType     FrequencyType
+	TimesPerFrequency int
+	TotalTrackingDays int
+	IsActive          bool
+}
+
+type FrequencyType int64
+
+const (
+	UndefinedFrequencyType FrequencyType = iota
+	Daily
+	Weekly
+	Monthly
+)
+
+func (f FrequencyType) String() string {
+	switch f {
+	case Daily:
+		return "daily"
+	case Weekly:
+		return "weekly"
+	case Monthly:
+		return "monthly"
+	default:
+		return "undefined"
+	}
+}
+
+func FrequencyTypeFromString(s string) FrequencyType {
+	switch s {
+	case "daily":
+		return Daily
+	case "weekly":
+		return Weekly
+	case "monthly":
+		return Monthly
+	default:
+		return UndefinedFrequencyType
+	}
+
 }
 
 func NewHabit(name, description string, goal *Goal) Habit {
@@ -26,15 +57,5 @@ func NewHabit(name, description string, goal *Goal) Habit {
 		Description: description,
 		Goal:        goal,
 		IsArchived:  false,
-	}
-}
-
-func NewGoal(frequency int, duration time.Duration, numOfPeriods int, startTrackingAt time.Time) Goal {
-	return Goal{
-		Frequency:       frequency,
-		Duration:        duration,
-		NumOfPeriods:    numOfPeriods,
-		StartTrackingAt: startTrackingAt,
-		EndTrackingAt:   startTrackingAt.Add(duration * time.Duration(numOfPeriods)),
 	}
 }

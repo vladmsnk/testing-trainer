@@ -195,6 +195,57 @@
                 }
             }
         },
+        "/tracker/habits/{habitName}/progress": {
+            "post": {
+                "description": "Adds progress to the habit",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "add progress endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Habit name",
+                        "name": "habitName",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tracker/habits/{username}": {
             "get": {
                 "description": "Lists all habits for the authenticated user",
@@ -288,25 +339,37 @@
                     "type": "string",
                     "example": "Drink 2 liters of water every day"
                 },
-                "duration_in_days": {
-                    "type": "integer",
-                    "example": 30
-                },
-                "frequency": {
-                    "type": "integer",
-                    "example": 1
+                "goal": {
+                    "$ref": "#/definitions/habit.Goal"
                 },
                 "name": {
                     "type": "string",
                     "example": "Drink water"
-                },
-                "num_of_periods": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "start_tracking_at": {
+                }
+            }
+        },
+        "habit.Goal": {
+            "type": "object",
+            "properties": {
+                "frequency_type": {
+                    "description": "daily, weekly, monthly",
                     "type": "string",
-                    "example": "2024-01-01T00:00:00Z"
+                    "enum": [
+                        "daily",
+                        "weekly",
+                        "monthly"
+                    ],
+                    "example": "daily"
+                },
+                "times_per_frequency": {
+                    "description": "How many times to complete within each frequency (e.g., per day or per week)",
+                    "type": "integer",
+                    "example": 1
+                },
+                "total_tracking_days": {
+                    "description": "How many days to track the habit",
+                    "type": "integer",
+                    "example": 30
                 }
             }
         },
@@ -369,25 +432,12 @@
                     "type": "string",
                     "example": "Drink 2 liters of water every day"
                 },
-                "duration_in_days": {
-                    "type": "integer",
-                    "example": 30
-                },
-                "frequency": {
-                    "type": "integer",
-                    "example": 1
+                "goal": {
+                    "$ref": "#/definitions/habit.Goal"
                 },
                 "name": {
                     "type": "string",
                     "example": "Drink water"
-                },
-                "num_of_periods": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "start_tracking_at": {
-                    "type": "string",
-                    "example": "2024-01-01T00:00:00Z"
                 }
             }
         }

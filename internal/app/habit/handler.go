@@ -25,6 +25,7 @@ func NewHabitHandler(r *gin.RouterGroup, uc UseCase) {
 
 	r.POST("/habits", h.CreateHabit)
 	r.GET("/habits/:username", h.ListUserHabits)
+	r.PUT("/habits", h.UpdateHabit)
 }
 
 // CreateHabit godoc
@@ -52,6 +53,7 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	if err := createHabitRequest.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 	}
@@ -126,11 +128,11 @@ func (h *Handler) UpdateHabit(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	if err := updateHabitRequest.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Habit updated"})
-
 }

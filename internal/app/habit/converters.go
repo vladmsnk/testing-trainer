@@ -1,21 +1,40 @@
 package habit
 
 import (
-	"time"
-
 	"testing_trainer/internal/entities"
 )
 
 func toEntityHabit(habit CreateHabitRequest) entities.Habit {
-	duration := time.Duration(habit.DurationInDays) * 24 * time.Hour
-	goal := entities.NewGoal(habit.Frequency, duration, habit.NumOfPeriods, habit.StartTrackingAt)
+	if habit.Goal == nil {
+		return entities.Habit{
+			Name:        habit.Name,
+			Description: habit.Description,
+		}
+	}
 
 	return entities.Habit{
 		Name:        habit.Name,
 		Description: habit.Description,
-		Goal:        &goal,
-		IsArchived:  false,
+		Goal: &entities.Goal{
+			FrequencyType:     toEntityFrequencyType(habit.Goal.FrequencyType),
+			TimesPerFrequency: habit.Goal.TimesPerFrequency,
+			TotalTrackingDays: habit.Goal.TotalTrackingDays,
+		},
 	}
+}
+
+func toEntityFrequencyType(frequencyType string) entities.FrequencyType {
+	switch frequencyType {
+	case "daily":
+		return entities.Daily
+	case "weekly":
+		return entities.Weekly
+	case "monthly":
+		return entities.Monthly
+	default:
+		return entities.UndefinedFrequencyType
+	}
+
 }
 
 func toListUserHabitsResponse(username string, habits []entities.Habit) ListUserHabitsResponse {
@@ -29,19 +48,6 @@ func toListUserHabitsResponse(username string, habits []entities.Habit) ListUser
 }
 
 func toResponseHabit(habit entities.Habit) ResponseHabit {
-	if habit.Goal != nil {
-		return ResponseHabit{
-			Name:        habit.Name,
-			Description: habit.Description,
-			Goal: &ResponseGoal{
-				Frequency:       habit.Goal.Frequency,
-				DurationInDays:  int(habit.Goal.Duration.Hours() / 24),
-				NumOfPeriods:    habit.Goal.NumOfPeriods,
-				StartTrackingAt: habit.Goal.StartTrackingAt,
-			},
-		}
-	}
-
 	return ResponseHabit{
 		Name:        habit.Name,
 		Description: habit.Description,

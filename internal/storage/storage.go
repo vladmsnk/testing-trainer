@@ -71,13 +71,13 @@ func (s *Storage) createGoalTx(ctx context.Context, tx pgx.Tx, habitID int64, go
 	}
 
 	query := `
-INSERT INTO goals (habit_id, frequency, duration, num_of_periods, start_tracking_at, end_tracking_at)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO goals (habit_id, frequency_type, times_per_frequency, total_tracking_days)
+VALUES ($1, $2, $3, $4);
 `
 
-	_, err := tx.Exec(ctx, query, habitID, goal.Frequency, goal.Duration, goal.NumOfPeriods, goal.StartTrackingAt, goal.EndTrackingAt)
+	_, err := tx.Exec(ctx, query, habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingDays)
 	if err != nil {
-		return fmt.Errorf("tx.Exec habit_id=%d frequency=%d duration=%d num_of_periods=%d start_tracking_at=%s end_tracking_at=%s: %w", habitID, goal.Frequency, goal.Duration, goal.NumOfPeriods, goal.StartTrackingAt, goal.EndTrackingAt, err)
+		return fmt.Errorf("tx.Exec habit_id=%d frequency_type=%s times_per_frequency=%d total_tracking_days=%d: %w", habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingDays, err)
 	}
 
 	return nil
@@ -119,11 +119,9 @@ select
     h.id as id, 
     h.name as name, 
     h.description as description,
-    g.duration as duration, 
-    g.frequency as frequency,
-    g.num_of_periods as num_of_periods,
-    g.start_tracking_at as start_tracking_at,
-    g.end_tracking_at as end_tracking_at
+    g.frequency_type as frequency_type, 
+    g.times_per_frequency as times_per_frequency,
+    g.total_tracking_days as total_tracking_days
 from habits h 
     left join goals g on h.id = g.habit_id 
 where h.username = $1;
@@ -139,7 +137,7 @@ where h.username = $1;
 	for rows.Next() {
 		var daoHabit habit
 
-		err := rows.Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.duration, &daoHabit.frequency, &daoHabit.numOfPeriods, &daoHabit.startTrackingAt, &daoHabit.endTrackingAt)
+		err := rows.Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingDays)
 		if err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
@@ -156,11 +154,9 @@ select
     h.id as id, 
     h.name as name, 
     h.description as description,
-    g.duration as duration, 
-    g.frequency as frequency,
-    g.num_of_periods as num_of_periods,
-    g.start_tracking_at as start_tracking_at,
-    g.end_tracking_at as end_tracking_at
+    g.frequency_type as frequency_type, 
+    g.times_per_frequency as times_per_frequency,
+    g.total_tracking_days as total_tracking_days
 from habits h 
     left join goals g on h.id = g.habit_id 
 where h.username = $1 
@@ -168,7 +164,7 @@ where h.username = $1
 
 	var daoHabit habit
 
-	err := s.db.QueryRow(ctx, query, username, habitName).Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.duration, &daoHabit.frequency, &daoHabit.numOfPeriods, &daoHabit.startTrackingAt, &daoHabit.endTrackingAt)
+	err := s.db.QueryRow(ctx, query, username, habitName).Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingDays)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Habit{}, ErrNotFound
@@ -183,13 +179,13 @@ func (s *Storage) UpdateHabit(ctx context.Context, username string, habit entiti
 	return nil
 }
 
-func (s *Storage) getHabitGoal(ctx context.Context, habitName string) (entities.Goal, error) {
+func (s *Storage) GetHabitGoal(ctx context.Context, habitName string) (entities.Goal, error) {
 	query := `
-select frequency, duration, num_of_periods, start_tracking_at, end_tracking_at from goals where habit_id = (select id from habits where name = $1);
+select id, frequency_type, times_per_frequency, total_tracking_days from goals where habit_id = (select id from habits where name = $1);
 	`
 	var daoGoal goal
 
-	err := s.db.QueryRow(ctx, query, habitName).Scan(&daoGoal.frequency, &daoGoal.duration, &daoGoal.numOfPeriods, &daoGoal.startTrackingAt, &daoGoal.endTrackingAt)
+	err := s.db.QueryRow(ctx, query, habitName).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingDays)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Goal{}, ErrNotFound
@@ -209,4 +205,137 @@ func (s *Storage) deactivateGoalByID(ctx context.Context, id int64) error {
 	}
 
 	return nil
+}
+
+func (s *Storage) AddHabitProgress(ctx context.Context, goalId int) error {
+	query := `
+insert into goal_logs (goal_id) values ($1);
+`
+
+	_, err := s.db.Exec(ctx, query, goalId)
+	if err != nil {
+		return fmt.Errorf("s.db.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error {
+	query := `
+	INSERT INTO goal_stats (goal_id, total_completed_periods, total_completed_times, most_longest_streak, current_streak)
+	VALUES ($1, $2, $3, $4, $5)
+	ON CONFLICT (goal_id) 
+	DO UPDATE SET 
+		total_completed_periods = $2,
+		total_completed_times = $3,
+		most_longest_streak = $4,
+		current_streak = $5;
+	`
+
+	_, err := s.db.Exec(ctx, query, goalId, progress.TotalCompletedPeriods, progress.TotalCompletedTimes, progress.MostLongestStreak, progress.CurrentStreak)
+	if err != nil {
+		return fmt.Errorf("s.db.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) GetHabitProgress(ctx context.Context, username, habitName string) (entities.Progress, error) {
+	return entities.Progress{}, nil
+}
+
+func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error) {
+	var query string
+
+	switch frequencyType {
+	case entities.Daily:
+		query = `
+		SELECT COUNT(*) 
+		FROM goal_logs 
+		WHERE goal_id = $1 
+		AND record_created_at::date = current_date - interval '1 day';
+		`
+	case entities.Weekly:
+		query = `
+		SELECT COUNT(*) 
+		FROM goal_logs 
+		WHERE goal_id = $1 
+		AND record_created_at >= date_trunc('week', current_date - interval '1 week') 
+		AND record_created_at < date_trunc('week', current_date);
+		`
+	case entities.Monthly:
+		query = `
+		SELECT COUNT(*) 
+		FROM goal_logs 
+		WHERE goal_id = $1 
+		AND record_created_at >= date_trunc('month', current_date - interval '1 month') 
+		AND record_created_at < date_trunc('month', current_date);
+		`
+	default:
+		return 0, fmt.Errorf("unsupported frequncy type: %v", frequencyType)
+	}
+
+	var count int
+	err := s.db.QueryRow(ctx, query, goalId).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return count, nil
+}
+func (s *Storage) GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error) {
+	var query string
+
+	switch frequencyType {
+	case entities.Daily:
+		query = `
+		SELECT COUNT(*) 
+		FROM goal_logs 
+		WHERE goal_id = $1 
+		AND record_created_at::date = current_date;
+		`
+	case entities.Weekly:
+		query = `
+		SELECT COUNT(*) 
+		FROM goal_logs 
+		WHERE goal_id = $1 
+		AND record_created_at >= date_trunc('week', current_date) 
+		AND record_created_at < date_trunc('week', current_date + interval '1 week');
+		`
+	case entities.Monthly:
+		query = `
+		SELECT COUNT(*) 
+		FROM goal_logs 
+		WHERE goal_id = $1 
+		AND record_created_at >= date_trunc('month', current_date) 
+		AND record_created_at < date_trunc('month', current_date + interval '1 month');
+		`
+	default:
+		return 0, fmt.Errorf("unsupported frequency type: %v", frequencyType)
+	}
+
+	var count int
+	err := s.db.QueryRow(ctx, query, goalId).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return count, nil
+}
+
+func (s *Storage) GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error) {
+	query := `
+select total_completed_periods,total_skipped_periods, total_completed_times, most_longest_streak, current_streak from goal_stats where goal_id = $1;
+`
+
+	var progress entities.Progress
+	err := s.db.QueryRow(ctx, query, goalId).Scan(&progress.TotalCompletedPeriods, &progress.TotalSkippedPeriods, &progress.TotalCompletedTimes, &progress.MostLongestStreak, &progress.CurrentStreak)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.Progress{}, nil
+		}
+		return entities.Progress{}, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return progress, nil
 }

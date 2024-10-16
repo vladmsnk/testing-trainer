@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"testing_trainer/internal/app/progress"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -16,7 +17,7 @@ import (
 	"testing_trainer/middlewares"
 )
 
-func setupRouter(userUc user.UseCase, habitUc habit.UseCase) *gin.Engine {
+func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress.UseCase) *gin.Engine {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/api/v1"
@@ -28,6 +29,7 @@ func setupRouter(userUc user.UseCase, habitUc habit.UseCase) *gin.Engine {
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	habit.NewHabitHandler(protectedHabitHandlers, habitUc)
+	progress.NewProgressHandler(protectedHabitHandlers, progressUc)
 	return r
 }
 
