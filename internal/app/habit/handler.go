@@ -3,9 +3,10 @@ package habit
 import (
 	"context"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 	"testing_trainer/internal/entities"
 	"testing_trainer/internal/usecase/habit"
 	"testing_trainer/utils/token"
@@ -110,7 +111,6 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 // @Tags example
 // @Accept json
 // @Produce json
-// @Param username path string true "Username"
 // @Param Authorization header string true "Bearer"
 // @Param requestBody body UpdateHabitRequest true "Update habit"
 // @Success 200 {string} string "Habit updated"
