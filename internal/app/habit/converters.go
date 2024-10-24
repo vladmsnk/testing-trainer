@@ -7,13 +7,11 @@ import (
 func toEntityHabit(habit CreateHabitRequest) entities.Habit {
 	if habit.Goal == nil {
 		return entities.Habit{
-			Name:        habit.Name,
 			Description: habit.Description,
 		}
 	}
 
 	return entities.Habit{
-		Name:        habit.Name,
 		Description: habit.Description,
 		Goal: &entities.Goal{
 			FrequencyType:        toEntityFrequencyType(habit.Goal.FrequencyType),
@@ -49,7 +47,7 @@ func toListUserHabitsResponse(username string, habits []entities.Habit) ListUser
 
 func toResponseHabit(habit entities.Habit) ResponseHabit {
 	return ResponseHabit{
-		Name:        habit.Name,
+		Id:          habit.Id,
 		Description: habit.Description,
 	}
 }

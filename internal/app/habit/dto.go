@@ -53,7 +53,7 @@ type ListUserHabitsResponse struct {
 }
 
 type ResponseHabit struct {
-	Name        string        `json:"name" example:"Drink water"`
+	Id          string        `json:"id" example:"1"`
 	Description string        `json:"description" example:"Drink 2 liters of water every day"`
 	Goal        *ResponseGoal `json:"goal,omitempty"`
 }

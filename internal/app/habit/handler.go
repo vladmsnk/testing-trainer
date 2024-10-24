@@ -2,13 +2,11 @@ package habit
 
 import (
 	"context"
-	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"testing_trainer/internal/entities"
-	"testing_trainer/internal/usecase/habit"
 	"testing_trainer/utils/token"
 )
 
@@ -61,10 +59,6 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 
 	id, err := h.uc.CreateHabit(c, username, toEntityHabit(createHabitRequest))
 	if err != nil {
-		if errors.Is(err, habit.ErrHabitAlreadyExists) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 	}
 

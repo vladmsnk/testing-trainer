@@ -50,16 +50,16 @@ func (s *Storage) CreateHabit(ctx context.Context, username string, habit entiti
 
 func (s *Storage) createHabitTx(ctx context.Context, tx pgx.Tx, username string, habit entities.Habit) (int64, error) {
 	query := `
-INSERT INTO habits (username, name, description)
-VALUES ($1, $2, $3)
+INSERT INTO habits (username, description)
+VALUES ($1, $2)
 returning id;
 `
 
 	var habitID int64
 
-	err := tx.QueryRow(ctx, query, username, habit.Name, habit.Description).Scan(&habitID)
+	err := tx.QueryRow(ctx, query, username, habit.Description).Scan(&habitID)
 	if err != nil {
-		return 0, fmt.Errorf("tx.Exec user_id=%s habit=%s description=%s: %w", username, habit.Name, habit.Description, err)
+		return 0, fmt.Errorf("tx.Exec user_id=%s description=%s: %w", username, habit.Description, err)
 	}
 
 	return habitID, nil
@@ -117,7 +117,6 @@ func (s *Storage) ListUserHabits(ctx context.Context, username string) ([]entiti
 	query := `
 select 
     h.id as id, 
-    h.name as name, 
     h.description as description,
     g.frequency_type as frequency_type, 
     g.times_per_frequency as times_per_frequency,
@@ -137,7 +136,7 @@ where h.username = $1;
 	for rows.Next() {
 		var daoHabit habit
 
-		err := rows.Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods)
+		err := rows.Scan(&daoHabit.id, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods)
 		if err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}
@@ -148,11 +147,10 @@ where h.username = $1;
 	return result, nil
 }
 
-func (s *Storage) GetHabitByName(ctx context.Context, username, habitName string) (entities.Habit, error) {
+func (s *Storage) GetHabitById(ctx context.Context, username, habitId string) (entities.Habit, error) {
 	query := `
 select 
     h.id as id, 
-    h.name as name, 
     h.description as description,
     g.frequency_type as frequency_type, 
     g.times_per_frequency as times_per_frequency,
@@ -164,7 +162,7 @@ where h.username = $1
 
 	var daoHabit habit
 
-	err := s.db.QueryRow(ctx, query, username, habitName).Scan(&daoHabit.id, &daoHabit.name, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods)
+	err := s.db.QueryRow(ctx, query, username, habitId).Scan(&daoHabit.id, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Habit{}, ErrNotFound
@@ -175,13 +173,13 @@ where h.username = $1
 	return toEntityHabit(daoHabit), nil
 }
 
-func (s *Storage) GetHabitGoal(ctx context.Context, habitName string) (entities.Goal, error) {
+func (s *Storage) GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error) {
 	query := `
 select id, frequency_type, times_per_frequency, total_tracking_periods from goals where habit_id = (select id from habits where name = $1);
 	`
 	var daoGoal goal
 
-	err := s.db.QueryRow(ctx, query, habitName).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods)
+	err := s.db.QueryRow(ctx, query, habitId).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Goal{}, ErrNotFound

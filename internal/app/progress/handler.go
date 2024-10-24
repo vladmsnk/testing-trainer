@@ -14,15 +14,15 @@ type Handler struct {
 }
 
 type UseCase interface {
-	GetHabitProgress(ctx context.Context, username, habitName string) (entities.ProgressWithGoal, error)
-	AddHabitProgress(ctx context.Context, username, habitName string) error
+	GetHabitProgress(ctx context.Context, username, habitId string) (entities.ProgressWithGoal, error)
+	AddHabitProgress(ctx context.Context, username, habitId string) error
 }
 
 func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
 	h := Handler{uc: uc}
 
-	r.POST("/progress/:habitName", h.AddProgress)
-	r.GET("/progress/:habitName", h.GetHabitProgress)
+	r.POST("/progress/:habitId", h.AddProgress)
+	r.GET("/progress/:habitId", h.GetHabitProgress)
 }
 
 // AddProgress godoc
@@ -37,20 +37,20 @@ func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /tracker/progress/{habitName} [post]
+// @Router /tracker/progress/{habitId} [post]
 func (h *Handler) AddProgress(c *gin.Context) {
 	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 	}
 
-	habitName := c.Param("habitName")
-	if habitName == "" {
+	habitId := c.Param("habitId")
+	if habitId == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "habitName is required"})
 		return
 	}
 
-	err = h.uc.AddHabitProgress(c, username, habitName)
+	err = h.uc.AddHabitProgress(c, username, habitId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -71,20 +71,20 @@ func (h *Handler) AddProgress(c *gin.Context) {
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
-// @Router /tracker/progress/{habitName} [get]
+// @Router /tracker/progress/{habitId} [get]
 func (h *Handler) GetHabitProgress(c *gin.Context) {
 	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 	}
 
-	habitName := c.Param("habitName")
-	if habitName == "" {
+	habitId := c.Param("habitId")
+	if habitId == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "habitName is required"})
 		return
 	}
 
-	progressWithGoal, err := h.uc.GetHabitProgress(c, username, habitName)
+	progressWithGoal, err := h.uc.GetHabitProgress(c, username, habitId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

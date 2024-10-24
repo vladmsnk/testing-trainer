@@ -42,27 +42,27 @@ func (_m *MockStorage) CreateHabit(ctx context.Context, username string, _a2 ent
 	return r0, r1
 }
 
-// GetHabitByName provides a mock function with given fields: ctx, username, habitName
-func (_m *MockStorage) GetHabitByName(ctx context.Context, username string, habitName string) (entities.Habit, error) {
-	ret := _m.Called(ctx, username, habitName)
+// GetHabitById provides a mock function with given fields: ctx, username, habitId
+func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitId string) (entities.Habit, error) {
+	ret := _m.Called(ctx, username, habitId)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetHabitByName")
+		panic("no return value specified for GetHabitById")
 	}
 
 	var r0 entities.Habit
 	var r1 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) (entities.Habit, error)); ok {
-		return rf(ctx, username, habitName)
+		return rf(ctx, username, habitId)
 	}
 	if rf, ok := ret.Get(0).(func(context.Context, string, string) entities.Habit); ok {
-		r0 = rf(ctx, username, habitName)
+		r0 = rf(ctx, username, habitId)
 	} else {
 		r0 = ret.Get(0).(entities.Habit)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, username, habitName)
+		r1 = rf(ctx, username, habitId)
 	} else {
 		r1 = ret.Error(1)
 	}

@@ -1,7 +1,7 @@
 package entities
 
 type Habit struct {
-	Name        string
+	Id          string
 	Description string
 	Goal        *Goal
 	IsArchived  bool
@@ -49,13 +49,4 @@ func FrequencyTypeFromString(s string) FrequencyType {
 		return UndefinedFrequencyType
 	}
 
-}
-
-func NewHabit(name, description string, goal *Goal) Habit {
-	return Habit{
-		Name:        name,
-		Description: description,
-		Goal:        goal,
-		IsArchived:  false,
-	}
 }

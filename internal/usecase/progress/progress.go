@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testing_trainer/internal/storage"
 
 	"testing_trainer/internal/entities"
+	"testing_trainer/internal/storage"
 )
 
 //go:generate mockery --dir . --name Storage --structname MockStorage --filename storage_mock.go --output . --outpkg=progress
@@ -17,8 +17,8 @@ var (
 )
 
 type UseCase interface {
-	GetHabitProgress(ctx context.Context, username, habitName string) (entities.Progress, error)
-	AddHabitProgress(ctx context.Context, username, habitName string) error
+	GetHabitProgress(ctx context.Context, username, habitId string) (entities.ProgressWithGoal, error)
+	AddHabitProgress(ctx context.Context, username, habitId string) error
 }
 
 type UserUseCase interface {
@@ -27,7 +27,7 @@ type UserUseCase interface {
 
 type Storage interface {
 	AddHabitProgress(ctx context.Context, goalId int) error
-	GetHabitGoal(ctx context.Context, habitName string) (entities.Goal, error)
+	GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error)
 	GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error)
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
@@ -47,13 +47,13 @@ func New(userUc UserUseCase, storage Storage) *Implementation {
 	}
 }
 
-func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitName string) (entities.ProgressWithGoal, error) {
+func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitId string) (entities.ProgressWithGoal, error) {
 	_, err := i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return entities.ProgressWithGoal{}, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
 	}
 
-	goal, err := i.storage.GetHabitGoal(ctx, habitName)
+	goal, err := i.storage.GetHabitGoal(ctx, habitId)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return entities.ProgressWithGoal{}, ErrHabitGoalNotFound
@@ -72,13 +72,13 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitNa
 	}, nil
 }
 
-func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitName string) error {
+func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitId string) error {
 	_, err := i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
 	}
 
-	goal, err := i.storage.GetHabitGoal(ctx, habitName)
+	goal, err := i.storage.GetHabitGoal(ctx, habitId)
 	if err != nil {
 		return fmt.Errorf("i.storage.GetHabitGoal: %w", err)
 	}

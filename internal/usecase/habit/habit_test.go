@@ -2,8 +2,9 @@ package habit
 
 import (
 	"context"
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 	"testing_trainer/internal/entities"
 	"testing_trainer/internal/storage"
 	"testing_trainer/internal/usecase/user"
@@ -22,7 +23,7 @@ func TestCreateHabit(t *testing.T) {
 		ctx             = context.Background()
 		username        = "username"
 		expectedHabitID = int64(1)
-		habitName       = "habit"
+		habitId         = "1"
 	)
 
 	t.Run("success", func(t *testing.T) {
@@ -31,11 +32,10 @@ func TestCreateHabit(t *testing.T) {
 		mockStorage, mockUserUc := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
-		mockStorage.On("GetHabitByName", ctx, username, habitName).Return(entities.Habit{}, storage.ErrNotFound)
-		mockStorage.On("CreateHabit", ctx, username, entities.Habit{Name: "habit"}).Return(expectedHabitID, nil)
+		mockStorage.On("CreateHabit", ctx, username, entities.Habit{Id: habitId}).Return(expectedHabitID, nil)
 		habituc := New(mockStorage, mockUserUc)
 
-		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Name: habitName})
+		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Id: habitId})
 		require.Nil(t, err, "unexpected error")
 		require.Equal(t, expectedHabitID, habitID)
 	})
@@ -48,22 +48,8 @@ func TestCreateHabit(t *testing.T) {
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, user.ErrUserNotFound)
 		habituc := New(mockStorage, mockUserUc)
 
-		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Name: habitName})
+		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Id: habitId})
 		require.ErrorIs(t, err, user.ErrUserNotFound, "unexpected error")
-		require.Zero(t, habitID)
-	})
-
-	t.Run("habit already exists", func(t *testing.T) {
-		t.Parallel()
-
-		mockStorage, mockUserUc := initFunc(t)
-
-		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
-		mockStorage.On("GetHabitByName", ctx, username, habitName).Return(entities.Habit{}, nil)
-		habituc := New(mockStorage, mockUserUc)
-
-		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Name: habitName})
-		require.ErrorIs(t, err, ErrHabitAlreadyExists, "unexpected error")
 		require.Zero(t, habitID)
 	})
 }
@@ -72,7 +58,7 @@ func TestListUserHabits(t *testing.T) {
 	var (
 		ctx            = context.Background()
 		username       = "username"
-		expectedHabits = []entities.Habit{{Name: "habit1"}, {Name: "habit2"}}
+		expectedHabits = []entities.Habit{{Id: "1"}, {Id: "2"}}
 	)
 
 	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase) {

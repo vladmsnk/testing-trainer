@@ -13,8 +13,7 @@ import (
 //go:generate mockery --dir . --name UserUseCase --structname MockUserUseCase --filename user_mock.go --output . --outpkg=habit
 
 var (
-	ErrHabitAlreadyExists = fmt.Errorf("habit already exists")
-	ErrUserNotFound       = fmt.Errorf("user not found")
+	ErrUserNotFound = fmt.Errorf("user not found")
 )
 
 type UseCase interface {
@@ -28,7 +27,7 @@ type UserUseCase interface {
 
 type Storage interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
-	GetHabitByName(ctx context.Context, username, habitName string) (entities.Habit, error)
+	GetHabitById(ctx context.Context, username, habitId string) (entities.Habit, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 }
 
@@ -45,15 +44,6 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 	_, err := i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return 0, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
-	}
-
-	_, err = i.storage.GetHabitByName(ctx, username, habit.Name)
-	if err != nil {
-		if !errors.Is(err, storage.ErrNotFound) {
-			return 0, fmt.Errorf("i.storage.GetHabitByName: %w", err)
-		}
-	} else {
-		return 0, ErrHabitAlreadyExists
 	}
 
 	createdHabitId, err := i.storage.CreateHabit(ctx, username, habit)
