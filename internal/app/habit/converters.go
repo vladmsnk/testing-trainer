@@ -16,9 +16,9 @@ func toEntityHabit(habit CreateHabitRequest) entities.Habit {
 		Name:        habit.Name,
 		Description: habit.Description,
 		Goal: &entities.Goal{
-			FrequencyType:     toEntityFrequencyType(habit.Goal.FrequencyType),
-			TimesPerFrequency: habit.Goal.TimesPerFrequency,
-			TotalTrackingDays: habit.Goal.TotalTrackingDays,
+			FrequencyType:        toEntityFrequencyType(habit.Goal.FrequencyType),
+			TimesPerFrequency:    habit.Goal.TimesPerFrequency,
+			TotalTrackingPeriods: habit.Goal.TotalTrackingPeriods,
 		},
 	}
 }

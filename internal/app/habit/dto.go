@@ -12,9 +12,9 @@ type CreateHabitRequest struct {
 }
 
 type Goal struct {
-	FrequencyType     string `json:"frequency_type" example:"daily" enums:"daily,weekly,monthly"` // daily, weekly, monthly
-	TimesPerFrequency int    `json:"times_per_frequency" example:"1"`                             // How many times to complete within each frequency (e.g., per day or per week)
-	TotalTrackingDays int    `json:"total_tracking_days" example:"30"`                            // How many days to track the habit
+	FrequencyType        string `json:"frequency_type" example:"daily" enums:"daily,weekly,monthly"` // daily, weekly, monthly
+	TimesPerFrequency    int    `json:"times_per_frequency" example:"1"`                             // How many times to complete within each frequency (e.g., per day or per week)
+	TotalTrackingPeriods int    `json:"total_tracking_periods" example:"15"`                         // How many periods to track the habit
 }
 
 func (r *CreateHabitRequest) Validate() error {

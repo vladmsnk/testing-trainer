@@ -49,6 +49,7 @@ func main() {
 	)
 
 	router := setupRouter(authUc, habitUc, processUc)
+	log.Println("Swagger is available on http://" + config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port) + "/swagger/index.html")
 	err = router.Run(config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port))
 	if err != nil {
 		log.Fatal(err)

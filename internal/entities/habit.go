@@ -8,11 +8,11 @@ type Habit struct {
 }
 
 type Goal struct {
-	Id                int
-	FrequencyType     FrequencyType
-	TimesPerFrequency int
-	TotalTrackingDays int
-	IsActive          bool
+	Id                   int
+	FrequencyType        FrequencyType
+	TimesPerFrequency    int
+	TotalTrackingPeriods int
+	IsActive             bool
 }
 
 type FrequencyType int64

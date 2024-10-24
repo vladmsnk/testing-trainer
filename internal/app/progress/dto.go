@@ -10,9 +10,9 @@ type GetHabitProgressResponse struct {
 }
 
 type Goal struct {
-	FrequencyType     string `json:"frequency_type"`
-	TimesPerFrequency int    `json:"times_per_frequency"`
-	TotalTrackingDays int    `json:"total_tracking_days"`
+	FrequencyType        string `json:"frequency_type"`
+	TimesPerFrequency    int    `json:"times_per_frequency"`
+	TotalTrackingPeriods int    `json:"total_tracking_periods"`
 }
 
 type Progress struct {

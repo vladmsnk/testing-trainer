@@ -2,9 +2,18 @@ package progress
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	
+	"testing_trainer/internal/storage"
+
 	"testing_trainer/internal/entities"
+)
+
+//go:generate mockery --dir . --name Storage --structname MockStorage --filename storage_mock.go --output . --outpkg=progress
+//go:generate mockery --dir . --name UserUseCase --structname MockUserUseCase --filename user_mock.go --output . --outpkg=progress
+
+var (
+	ErrHabitGoalNotFound = fmt.Errorf("habit goal not found")
 )
 
 type UseCase interface {
@@ -45,6 +54,9 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitNa
 
 	goal, err := i.storage.GetHabitGoal(ctx, habitName)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return entities.ProgressWithGoal{}, ErrHabitGoalNotFound
+		}
 		return entities.ProgressWithGoal{}, fmt.Errorf("i.storage.GetHabitGoal: %w", err)
 	}
 

@@ -12,9 +12,9 @@ func toHabitProgressResponse(progressWithGoal entities.ProgressWithGoal) GetHabi
 			CurrentStreak:         progressWithGoal.CurrentStreak,
 		},
 		Goal: Goal{
-			FrequencyType:     progressWithGoal.FrequencyType.String(),
-			TimesPerFrequency: progressWithGoal.TimesPerFrequency,
-			TotalTrackingDays: progressWithGoal.TotalTrackingDays,
+			FrequencyType:        progressWithGoal.FrequencyType.String(),
+			TimesPerFrequency:    progressWithGoal.TimesPerFrequency,
+			TotalTrackingPeriods: progressWithGoal.TotalTrackingPeriods,
 		},
 	}
 }
