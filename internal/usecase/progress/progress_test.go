@@ -27,6 +27,7 @@ func TestGetHabitProgress(t *testing.T) {
 			TimesPerFrequency:    2,
 			TotalTrackingPeriods: 30,
 		}
+
 		progress = entities.Progress{
 			TotalCompletedPeriods: 10,
 			TotalSkippedPeriods:   0,
@@ -296,6 +297,39 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("GetCurrentPeriodExecutionCount", ctx, goal.Id, goal.FrequencyType).Return(1, nil)
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
+
+		progressUC := New(mockUserUc, mockStorage)
+		err := progressUC.AddHabitProgress(ctx, username, habitName)
+		require.Nil(t, err)
+	})
+
+	t.Run("set goal is completed", func(t *testing.T) {
+		currentProgress := entities.Progress{
+			TotalCompletedPeriods: 29,
+			TotalSkippedPeriods:   0,
+			TotalCompletedTimes:   59,
+			MostLongestStreak:     29,
+			CurrentStreak:         29,
+		}
+
+		updateGoalStateEntity := entities.Progress{
+			TotalCompletedPeriods: 30,
+			TotalSkippedPeriods:   0,
+			TotalCompletedTimes:   60,
+			MostLongestStreak:     30,
+			CurrentStreak:         30,
+		}
+
+		mockStorage, mockUserUc := initFunc(t)
+
+		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
+		mockStorage.On("GetHabitGoal", ctx, habitName).Return(goal, nil)
+		mockStorage.On("GetCurrentProgress", ctx, 1).Return(currentProgress, nil)
+		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goal.Id, goal.FrequencyType).Return(0, nil)
+		mockStorage.On("GetCurrentPeriodExecutionCount", ctx, goal.Id, goal.FrequencyType).Return(1, nil)
+		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
+		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
+		mockStorage.On("SetGoalCompleted", ctx, goal.Id).Return(nil)
 
 		progressUC := New(mockUserUc, mockStorage)
 		err := progressUC.AddHabitProgress(ctx, username, habitName)

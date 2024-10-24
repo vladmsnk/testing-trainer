@@ -32,6 +32,7 @@ type Storage interface {
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error)
+	SetGoalCompleted(ctx context.Context, goalId int) error
 }
 
 type Implementation struct {
@@ -99,6 +100,7 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitNa
 
 	currentExecutionCount += 1
 	updatedProgress := currentProgress
+	goalIsCompleted := false
 
 	updatedProgress.TotalCompletedTimes = currentProgress.TotalCompletedTimes + 1
 	if currentExecutionCount == goal.TimesPerFrequency { // If the goal is completed for the current period
@@ -108,6 +110,10 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitNa
 		// Check if the current streak is the longest streak
 		if (lastPeriodExecutionCount >= goal.TimesPerFrequency || lastPeriodExecutionCount == 0) && currentProgress.CurrentStreak+1 > currentProgress.MostLongestStreak {
 			updatedProgress.MostLongestStreak = currentProgress.CurrentStreak + 1
+		}
+
+		if updatedProgress.TotalCompletedPeriods == goal.TotalTrackingPeriods {
+			goalIsCompleted = true
 		}
 	}
 
@@ -120,5 +126,17 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitNa
 	if err != nil {
 		return fmt.Errorf("i.storage.UpdateGoalStat: %w", err)
 	}
+
+	if goalIsCompleted {
+		err := i.storage.SetGoalCompleted(ctx, goal.Id)
+		if err != nil {
+			return fmt.Errorf("i.storage.SetGoalCompleted: %w", err)
+		}
+	}
+
 	return nil
+}
+
+func (i *Implementation) AsyncUpdateGoalStat(ctx context.Context) {
+
 }

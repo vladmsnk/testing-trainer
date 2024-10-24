@@ -25,10 +25,10 @@ create table if not exists goals (
     habit_id int not null,
     frequency_type varchar(255) not null, -- тип частоты выполнения привычки
     times_per_frequency int not null, -- количество раз в частоте
-    total_tracking_days int, -- общее количество дней отслеживания
+    total_tracking_days int, -- общее количество периодов отслеживания
     created_at timestamp default current_timestamp,
     updated_at timestamp default current_timestamp,
-    is_active bool default false -- активна ли цель
+    is_active bool default false
 );
 
 create table if not exists goal_stats (
@@ -44,7 +44,7 @@ create table if not exists goal_stats (
 create table if not exists goal_logs (
     id serial primary key,
     goal_id int not null,
-    record_created_at timestamp default current_timestamp -- время создания записи в этой таблице
+    record_created_at timestamp default current_timestamp-- время создания записи в этой таблице
 );
 -- +goose StatementEnd
 

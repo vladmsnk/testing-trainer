@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"testing_trainer/internal/entities"
 )
@@ -175,10 +175,6 @@ where h.username = $1
 	return toEntityHabit(daoHabit), nil
 }
 
-func (s *Storage) UpdateHabit(ctx context.Context, username string, habit entities.Habit) error {
-	return nil
-}
-
 func (s *Storage) GetHabitGoal(ctx context.Context, habitName string) (entities.Goal, error) {
 	query := `
 select id, frequency_type, times_per_frequency, total_tracking_periods from goals where habit_id = (select id from habits where name = $1);
@@ -238,10 +234,6 @@ func (s *Storage) UpdateGoalStat(ctx context.Context, goalId int, progress entit
 	}
 
 	return nil
-}
-
-func (s *Storage) GetHabitProgress(ctx context.Context, username, habitName string) (entities.Progress, error) {
-	return entities.Progress{}, nil
 }
 
 func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error) {
@@ -338,4 +330,16 @@ select total_completed_periods,total_skipped_periods, total_completed_times, mos
 	}
 
 	return progress, nil
+}
+
+func (s *Storage) SetGoalCompleted(ctx context.Context, goalId int) error {
+	query := `
+update goals set is_completed = true where id = $1;
+`
+	_, err := s.db.Exec(ctx, query, goalId)
+	if err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+
+	return nil
 }
