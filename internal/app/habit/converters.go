@@ -4,7 +4,7 @@ import (
 	"testing_trainer/internal/entities"
 )
 
-func toEntityHabit(habit CreateHabitRequest) entities.Habit {
+func toCreateHabitEntity(habit CreateHabitRequest) entities.Habit {
 	if habit.Goal == nil {
 		return entities.Habit{
 			Description: habit.Description,
@@ -12,6 +12,25 @@ func toEntityHabit(habit CreateHabitRequest) entities.Habit {
 	}
 
 	return entities.Habit{
+		Description: habit.Description,
+		Goal: &entities.Goal{
+			FrequencyType:        toEntityFrequencyType(habit.Goal.FrequencyType),
+			TimesPerFrequency:    habit.Goal.TimesPerFrequency,
+			TotalTrackingPeriods: habit.Goal.TotalTrackingPeriods,
+		},
+	}
+}
+
+func toUpdateHabitEntity(habit UpdateHabitRequest) entities.Habit {
+	if habit.Goal == nil {
+		return entities.Habit{
+			Id:          habit.Id,
+			Description: habit.Description,
+		}
+	}
+
+	return entities.Habit{
+		Id:          habit.Id,
 		Description: habit.Description,
 		Goal: &entities.Goal{
 			FrequencyType:        toEntityFrequencyType(habit.Goal.FrequencyType),
@@ -46,8 +65,16 @@ func toListUserHabitsResponse(username string, habits []entities.Habit) ListUser
 }
 
 func toResponseHabit(habit entities.Habit) ResponseHabit {
-	return ResponseHabit{
+	r := ResponseHabit{
 		Id:          habit.Id,
 		Description: habit.Description,
 	}
+	if habit.Goal != nil {
+		r.Goal = &Goal{
+			FrequencyType:        habit.Goal.FrequencyType.String(),
+			TimesPerFrequency:    habit.Goal.TimesPerFrequency,
+			TotalTrackingPeriods: habit.Goal.TotalTrackingPeriods,
+		}
+	}
+	return r
 }

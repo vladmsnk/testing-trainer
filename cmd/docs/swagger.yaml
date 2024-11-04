@@ -46,9 +46,9 @@ definitions:
           or per week)
         example: 1
         type: integer
-      total_tracking_days:
-        description: How many days to track the habit
-        example: 30
+      total_tracking_periods:
+        description: How many periods to track the habit
+        example: 15
         type: integer
     type: object
   habit.ListUserHabitsResponse:
@@ -61,30 +61,15 @@ definitions:
         example: john_doe
         type: string
     type: object
-  habit.ResponseGoal:
-    properties:
-      duration_in_days:
-        example: 30
-        type: integer
-      frequency:
-        example: 1
-        type: integer
-      num_of_periods:
-        example: 2
-        type: integer
-      start_tracking_at:
-        example: "2024-01-01T00:00:00Z"
-        type: string
-    type: object
   habit.ResponseHabit:
     properties:
       description:
         example: Drink 2 liters of water every day
         type: string
       goal:
-        $ref: '#/definitions/habit.ResponseGoal'
-      name:
-        example: Drink water
+        $ref: '#/definitions/habit.Goal'
+      id:
+        example: "1"
         type: string
     type: object
   habit.UpdateHabitRequest:
@@ -193,11 +178,6 @@ paths:
       - application/json
       description: Updates a habit for the authenticated user
       parameters:
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
       - description: Bearer
         in: header
         name: Authorization
@@ -263,7 +243,7 @@ paths:
       summary: list user habits endpoint
       tags:
       - example
-  /tracker/progress/{habitName}:
+  /tracker/progress/{habitId}:
     get:
       consumes:
       - application/json
@@ -274,9 +254,9 @@ paths:
         name: Authorization
         required: true
         type: string
-      - description: Habit name
+      - description: Habit ID
         in: path
-        name: habitName
+        name: habitID
         required: true
         type: string
       produces:
@@ -307,9 +287,9 @@ paths:
         name: Authorization
         required: true
         type: string
-      - description: Habit name
+      - description: Habit ID
         in: path
-        name: habitName
+        name: habitID
         required: true
         type: string
       produces:

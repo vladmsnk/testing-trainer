@@ -111,13 +111,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Username",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "Bearer",
                         "name": "Authorization",
                         "in": "header",
@@ -260,7 +253,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/tracker/progress/{habitName}": {
+        "/tracker/progress/{habitId}": {
             "get": {
                 "description": "Get progress of the habit",
                 "consumes": [
@@ -283,8 +276,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Habit name",
-                        "name": "habitName",
+                        "description": "Habit ID",
+                        "name": "habitID",
                         "in": "path",
                         "required": true
                     }
@@ -332,8 +325,8 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Habit name",
-                        "name": "habitName",
+                        "description": "Habit ID",
+                        "name": "habitID",
                         "in": "path",
                         "required": true
                     }
@@ -426,10 +419,10 @@ const docTemplate = `{
                     "type": "integer",
                     "example": 1
                 },
-                "total_tracking_days": {
-                    "description": "How many days to track the habit",
+                "total_tracking_periods": {
+                    "description": "How many periods to track the habit",
                     "type": "integer",
-                    "example": 30
+                    "example": 15
                 }
             }
         },
@@ -448,27 +441,6 @@ const docTemplate = `{
                 }
             }
         },
-        "habit.ResponseGoal": {
-            "type": "object",
-            "properties": {
-                "duration_in_days": {
-                    "type": "integer",
-                    "example": 30
-                },
-                "frequency": {
-                    "type": "integer",
-                    "example": 1
-                },
-                "num_of_periods": {
-                    "type": "integer",
-                    "example": 2
-                },
-                "start_tracking_at": {
-                    "type": "string",
-                    "example": "2024-01-01T00:00:00Z"
-                }
-            }
-        },
         "habit.ResponseHabit": {
             "type": "object",
             "properties": {
@@ -477,11 +449,11 @@ const docTemplate = `{
                     "example": "Drink 2 liters of water every day"
                 },
                 "goal": {
-                    "$ref": "#/definitions/habit.ResponseGoal"
+                    "$ref": "#/definitions/habit.Goal"
                 },
-                "name": {
+                "id": {
                     "type": "string",
-                    "example": "Drink water"
+                    "example": "1"
                 }
             }
         },

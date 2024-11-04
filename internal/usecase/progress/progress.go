@@ -11,6 +11,7 @@ import (
 
 //go:generate mockery --dir . --name Storage --structname MockStorage --filename storage_mock.go --output . --outpkg=progress
 //go:generate mockery --dir . --name UserUseCase --structname MockUserUseCase --filename user_mock.go --output . --outpkg=progress
+//go:generate mockery --dir . --name Transactor --structname MockTransactor --filename transactor_mock.go --output . --outpkg=progress
 
 var (
 	ErrHabitGoalNotFound = fmt.Errorf("habit goal not found")
@@ -25,6 +26,10 @@ type UserUseCase interface {
 	GetUserByUsername(ctx context.Context, username string) (entities.User, error)
 }
 
+type Transactor interface {
+	RunRepeatableRead(ctx context.Context, fx func(ctxTX context.Context) error) error
+}
+
 type Storage interface {
 	AddHabitProgress(ctx context.Context, goalId int) error
 	GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error)
@@ -36,14 +41,16 @@ type Storage interface {
 }
 
 type Implementation struct {
-	userUc  UserUseCase
-	storage Storage
+	userUc     UserUseCase
+	storage    Storage
+	transactor Transactor
 }
 
-func New(userUc UserUseCase, storage Storage) *Implementation {
+func New(userUc UserUseCase, storage Storage, transactor Transactor) *Implementation {
 	return &Implementation{
-		userUc:  userUc,
-		storage: storage,
+		userUc:     userUc,
+		storage:    storage,
+		transactor: transactor,
 	}
 }
 
@@ -73,68 +80,74 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitId
 }
 
 func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitId string) error {
-	_, err := i.userUc.GetUserByUsername(ctx, username)
-	if err != nil {
-		return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
-	}
-
-	goal, err := i.storage.GetHabitGoal(ctx, habitId)
-	if err != nil {
-		return fmt.Errorf("i.storage.GetHabitGoal: %w", err)
-	}
-
-	currentProgress, err := i.storage.GetCurrentProgress(ctx, goal.Id)
-	if err != nil {
-		return fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
-	}
-
-	lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType)
-	if err != nil {
-		return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
-	}
-
-	currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType)
-	if err != nil {
-		return fmt.Errorf("i.storage.GetTodayExecutionCount: %w", err)
-	}
-
-	currentExecutionCount += 1
-	updatedProgress := currentProgress
-	goalIsCompleted := false
-
-	updatedProgress.TotalCompletedTimes = currentProgress.TotalCompletedTimes + 1
-	if currentExecutionCount == goal.TimesPerFrequency { // If the goal is completed for the current period
-		updatedProgress.TotalCompletedPeriods = currentProgress.TotalCompletedPeriods + 1
-		updatedProgress.CurrentStreak = currentProgress.CurrentStreak + 1
-
-		// Check if the current streak is the longest streak
-		if (lastPeriodExecutionCount >= goal.TimesPerFrequency || lastPeriodExecutionCount == 0) && currentProgress.CurrentStreak+1 > currentProgress.MostLongestStreak {
-			updatedProgress.MostLongestStreak = currentProgress.CurrentStreak + 1
-		}
-
-		if updatedProgress.TotalCompletedPeriods == goal.TotalTrackingPeriods {
-			goalIsCompleted = true
-		}
-	}
-
-	err = i.storage.AddHabitProgress(ctx, goal.Id)
-	if err != nil {
-		return fmt.Errorf("i.storage.AddHabitProgress: %w", err)
-	}
-
-	err = i.storage.UpdateGoalStat(ctx, goal.Id, updatedProgress)
-	if err != nil {
-		return fmt.Errorf("i.storage.UpdateGoalStat: %w", err)
-	}
-
-	if goalIsCompleted {
-		err := i.storage.SetGoalCompleted(ctx, goal.Id)
+	err := i.transactor.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
+		_, err := i.userUc.GetUserByUsername(ctx, username)
 		if err != nil {
-			return fmt.Errorf("i.storage.SetGoalCompleted: %w", err)
+			return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
 		}
-	}
 
-	return nil
+		goal, err := i.storage.GetHabitGoal(ctx, habitId)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return ErrHabitGoalNotFound
+			}
+			return fmt.Errorf("i.storage.GetHabitGoal: %w", err)
+		}
+
+		currentProgress, err := i.storage.GetCurrentProgress(ctx, goal.Id)
+		if err != nil {
+			return fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
+		}
+
+		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType)
+		if err != nil {
+			return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
+		}
+
+		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType)
+		if err != nil {
+			return fmt.Errorf("i.storage.GetTodayExecutionCount: %w", err)
+		}
+
+		currentExecutionCount += 1
+		updatedProgress := currentProgress
+		goalIsCompleted := false
+
+		updatedProgress.TotalCompletedTimes = currentProgress.TotalCompletedTimes + 1
+		if currentExecutionCount == goal.TimesPerFrequency { // If the goal is completed for the current period
+			updatedProgress.TotalCompletedPeriods = currentProgress.TotalCompletedPeriods + 1
+			updatedProgress.CurrentStreak = currentProgress.CurrentStreak + 1
+
+			// Check if the current streak is the longest streak
+			if (lastPeriodExecutionCount >= goal.TimesPerFrequency || lastPeriodExecutionCount == 0) && currentProgress.CurrentStreak+1 > currentProgress.MostLongestStreak {
+				updatedProgress.MostLongestStreak = currentProgress.CurrentStreak + 1
+			}
+
+			if updatedProgress.TotalCompletedPeriods == goal.TotalTrackingPeriods {
+				goalIsCompleted = true
+			}
+		}
+
+		err = i.storage.AddHabitProgress(ctx, goal.Id)
+		if err != nil {
+			return fmt.Errorf("i.storage.AddHabitProgress: %w", err)
+		}
+
+		err = i.storage.UpdateGoalStat(ctx, goal.Id, updatedProgress)
+		if err != nil {
+			return fmt.Errorf("i.storage.UpdateGoalStat: %w", err)
+		}
+
+		if goalIsCompleted {
+			err := i.storage.SetGoalCompleted(ctx, goal.Id)
+			if err != nil {
+				return fmt.Errorf("i.storage.SetGoalCompleted: %w", err)
+			}
+		}
+		return nil
+	})
+
+	return err
 }
 
 func (i *Implementation) AsyncUpdateGoalStat(ctx context.Context) {

@@ -2,7 +2,6 @@ package habit
 
 import (
 	"fmt"
-	"time"
 )
 
 type CreateHabitRequest struct {
@@ -30,8 +29,8 @@ func (r *CreateHabitRequest) Validate() error {
 }
 
 func (r *UpdateHabitRequest) Validate() error {
-	if r.Name == "" {
-		return fmt.Errorf("name is required")
+	if r.Id == "" {
+		return fmt.Errorf("id is required")
 	}
 
 	if r.Description == "" {
@@ -42,7 +41,7 @@ func (r *UpdateHabitRequest) Validate() error {
 }
 
 type UpdateHabitRequest struct {
-	Name        string `json:"name" example:"Drink water"`
+	Id          string `json:"id" example:"1"`
 	Description string `json:"description" example:"Drink 2 liters of water every day"`
 	Goal        *Goal  `json:"goal,omitempty"`
 }
@@ -53,14 +52,7 @@ type ListUserHabitsResponse struct {
 }
 
 type ResponseHabit struct {
-	Id          string        `json:"id" example:"1"`
-	Description string        `json:"description" example:"Drink 2 liters of water every day"`
-	Goal        *ResponseGoal `json:"goal,omitempty"`
-}
-
-type ResponseGoal struct {
-	Frequency       int       `json:"frequency" example:"1"`
-	DurationInDays  int       `json:"duration_in_days" example:"30"`
-	NumOfPeriods    int       `json:"num_of_periods" example:"2"`
-	StartTrackingAt time.Time `json:"start_tracking_at" example:"2024-01-01T00:00:00Z"`
+	Id          string `json:"id" example:"1"`
+	Description string `json:"description" example:"Drink 2 liters of water every day"`
+	Goal        *Goal  `json:"goal,omitempty"`
 }

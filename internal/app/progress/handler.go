@@ -33,7 +33,7 @@ func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
-// @Param habitName path string true "Habit name"
+// @Param habitID path string true "Habit ID"
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -46,7 +46,7 @@ func (h *Handler) AddProgress(c *gin.Context) {
 
 	habitId := c.Param("habitId")
 	if habitId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "habitName is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "habitID is required"})
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *Handler) AddProgress(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
-// @Param habitName path string true "Habit name"
+// @Param habitID path string true "Habit ID"
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -80,7 +80,7 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 
 	habitId := c.Param("habitId")
 	if habitId == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "habitName is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "habitID is required"})
 		return
 	}
 

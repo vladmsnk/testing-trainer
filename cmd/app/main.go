@@ -2,17 +2,18 @@ package main
 
 import (
 	"database/sql"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"strconv"
-	"testing_trainer/internal/usecase/progress"
-	"testing_trainer/scripts/migrations"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"testing_trainer/config"
 	"testing_trainer/internal/storage"
+	"testing_trainer/internal/storage/transactor"
 	"testing_trainer/internal/usecase/habit"
+	"testing_trainer/internal/usecase/progress"
 	"testing_trainer/internal/usecase/user"
+	"testing_trainer/scripts/migrations"
 )
 
 func main() {
@@ -41,11 +42,16 @@ func main() {
 		store = storage.NewStorage(pool)
 	)
 
+	tx, err := transactor.New(pool)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
 	// usecases
 	var (
 		authUc    = user.New(store)
 		habitUc   = habit.New(store, authUc)
-		processUc = progress.New(authUc, store)
+		processUc = progress.New(authUc, store, tx)
 	)
 
 	router := setupRouter(authUc, habitUc, processUc)

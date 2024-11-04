@@ -17,6 +17,7 @@ type Handler struct {
 type UseCase interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
+	UpdateHabit(ctx context.Context, username string, habit entities.Habit) error
 }
 
 func NewHabitHandler(r *gin.RouterGroup, uc UseCase) {
@@ -55,11 +56,13 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 
 	if err := createHabitRequest.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	id, err := h.uc.CreateHabit(c, username, toEntityHabit(createHabitRequest))
+	id, err := h.uc.CreateHabit(c, username, toCreateHabitEntity(createHabitRequest))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"HabitId": strconv.Itoa(int(id))})
@@ -88,11 +91,13 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
 	}
 
 	habits, err := h.uc.ListUserHabits(c, username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, toListUserHabitsResponse(username, habits))
@@ -112,9 +117,13 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 // @Failure 401 {string} string "Unauthorized"
 // @Router /tracker/habits [put]
 func (h *Handler) UpdateHabit(c *gin.Context) {
-	_, err := token.ExtractUsernameFromToken(c)
+	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+	}
+	if username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username is required"})
+		return
 	}
 
 	var updateHabitRequest UpdateHabitRequest
@@ -125,6 +134,12 @@ func (h *Handler) UpdateHabit(c *gin.Context) {
 
 	if err := updateHabitRequest.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err = h.uc.UpdateHabit(c, username, toUpdateHabitEntity(updateHabitRequest))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 

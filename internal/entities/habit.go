@@ -15,6 +15,22 @@ type Goal struct {
 	IsActive             bool
 }
 
+func IsGoalChanged(old, new *Goal) bool {
+	if old == nil && new == nil {
+		return false
+	}
+
+	if old == nil && new != nil || new == nil && old != nil {
+		return true
+	}
+
+	if *old != *new {
+		return true
+	}
+
+	return false
+}
+
 type FrequencyType int64
 
 const (

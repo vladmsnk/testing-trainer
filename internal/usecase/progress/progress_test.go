@@ -2,6 +2,7 @@ package progress
 
 import (
 	"context"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"testing"
 	"testing_trainer/internal/entities"
@@ -10,11 +11,12 @@ import (
 )
 
 func TestGetHabitProgress(t *testing.T) {
-	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase) {
+	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase, *MockTransactor) {
 		mockStorage := NewMockStorage(t)
 		mockUserUc := NewMockUserUseCase(t)
+		mockTransactor := NewMockTransactor(t)
 
-		return mockStorage, mockUserUc
+		return mockStorage, mockUserUc, mockTransactor
 	}
 
 	var (
@@ -45,13 +47,13 @@ func TestGetHabitProgress(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
 		mockStorage.On("GetCurrentProgress", ctx, 1).Return(progress, nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTx)
 
 		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
@@ -61,11 +63,11 @@ func TestGetHabitProgress(t *testing.T) {
 	t.Run("user not found", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, user.ErrUserNotFound)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTx)
 
 		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
 		require.ErrorIs(t, err, user.ErrUserNotFound)
@@ -75,12 +77,12 @@ func TestGetHabitProgress(t *testing.T) {
 	t.Run("get habit goal not found", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(entities.Goal{}, storage.ErrNotFound)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTx)
 
 		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
 		require.ErrorIs(t, err, ErrHabitGoalNotFound)
@@ -89,11 +91,12 @@ func TestGetHabitProgress(t *testing.T) {
 }
 
 func TestAddHabitProgress(t *testing.T) {
-	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase) {
+	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase, *MockTransactor) {
 		mockStorage := NewMockStorage(t)
 		mockUserUc := NewMockUserUseCase(t)
+		mockTransactor := NewMockTransactor(t)
 
-		return mockStorage, mockUserUc
+		return mockStorage, mockUserUc, mockTransactor
 	}
 
 	var (
@@ -128,7 +131,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         11,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -138,7 +146,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})
@@ -160,7 +168,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         10,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -170,7 +183,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})
@@ -192,7 +205,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         0,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -202,7 +220,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})
@@ -224,7 +242,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         1,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -234,7 +257,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})
@@ -256,7 +279,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         0,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -266,7 +294,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})
@@ -288,7 +316,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         1,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -298,7 +331,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})
@@ -320,7 +353,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         30,
 		}
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
@@ -331,7 +369,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)
 		mockStorage.On("SetGoalCompleted", ctx, goal.Id).Return(nil)
 
-		progressUC := New(mockUserUc, mockStorage)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 	})

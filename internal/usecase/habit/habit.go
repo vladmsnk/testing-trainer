@@ -13,12 +13,14 @@ import (
 //go:generate mockery --dir . --name UserUseCase --structname MockUserUseCase --filename user_mock.go --output . --outpkg=habit
 
 var (
-	ErrUserNotFound = fmt.Errorf("user not found")
+	ErrUserNotFound  = fmt.Errorf("user not found")
+	ErrHabitNotFound = fmt.Errorf("habit not found")
 )
 
 type UseCase interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
+	UpdateHabit(ctx context.Context, username string, habit entities.Habit) error
 }
 
 type UserUseCase interface {
@@ -28,7 +30,12 @@ type UserUseCase interface {
 type Storage interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
 	GetHabitById(ctx context.Context, username, habitId string) (entities.Habit, error)
+	GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
+	DeactivateGoalByID(ctx context.Context, id int) error
+	CreateGoal(ctx context.Context, habitID string, goal entities.Goal) (int, error)
+	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
+	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 }
 
 type Implementation struct {
@@ -69,4 +76,53 @@ func (i *Implementation) ListUserHabits(ctx context.Context, username string) ([
 	}
 
 	return userHabits, nil
+}
+
+func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit entities.Habit) error {
+	_, err := i.userUc.GetUserByUsername(ctx, username)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+	}
+
+	currentHabit, err := i.storage.GetHabitById(ctx, username, habit.Id)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return ErrHabitNotFound
+		}
+		return fmt.Errorf("storage.GetHabitById: %w", err)
+	}
+	currentGoal := currentHabit.Goal
+
+	newGoal := habit.Goal
+	if !entities.IsGoalChanged(currentGoal, newGoal) {
+		return nil
+	}
+
+	err = i.storage.DeactivateGoalByID(ctx, currentGoal.Id)
+	if err != nil {
+		return fmt.Errorf("storage.DeactivateGoalByID: %w", err)
+	}
+
+	newGoalId, err := i.storage.CreateGoal(ctx, habit.Id, *newGoal)
+	if err != nil {
+		return fmt.Errorf("storage.CreateGoal: %w", err)
+	}
+
+	currentProgress, err := i.storage.GetCurrentProgress(ctx, currentGoal.Id)
+	if err != nil {
+		return fmt.Errorf("storage.GetCurrentProgress: %w", err)
+	}
+
+	err = i.storage.UpdateGoalStat(ctx, newGoalId, currentProgress)
+	if err != nil {
+		return fmt.Errorf("storage.UpdateGoalStat: %w", err)
+	}
+	// Текущая цель перестает быть активной
+	// Создается новая запись прогресса, куда переносится вся текущая статистика
+	// Теперь привычка отслеживается по новым правилам
+
+	return nil
 }

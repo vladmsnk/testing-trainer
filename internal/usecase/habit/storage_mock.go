@@ -14,6 +14,34 @@ type MockStorage struct {
 	mock.Mock
 }
 
+// CreateGoal provides a mock function with given fields: ctx, habitID, goal
+func (_m *MockStorage) CreateGoal(ctx context.Context, habitID string, goal entities.Goal) (int, error) {
+	ret := _m.Called(ctx, habitID, goal)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateGoal")
+	}
+
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Goal) (int, error)); ok {
+		return rf(ctx, habitID, goal)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Goal) int); ok {
+		r0 = rf(ctx, habitID, goal)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, entities.Goal) error); ok {
+		r1 = rf(ctx, habitID, goal)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // CreateHabit provides a mock function with given fields: ctx, username, _a2
 func (_m *MockStorage) CreateHabit(ctx context.Context, username string, _a2 entities.Habit) (int64, error) {
 	ret := _m.Called(ctx, username, _a2)
@@ -35,6 +63,52 @@ func (_m *MockStorage) CreateHabit(ctx context.Context, username string, _a2 ent
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, entities.Habit) error); ok {
 		r1 = rf(ctx, username, _a2)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// DeactivateGoalByID provides a mock function with given fields: ctx, id
+func (_m *MockStorage) DeactivateGoalByID(ctx context.Context, id int) error {
+	ret := _m.Called(ctx, id)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeactivateGoalByID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = rf(ctx, id)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// GetCurrentProgress provides a mock function with given fields: ctx, goalId
+func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error) {
+	ret := _m.Called(ctx, goalId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCurrentProgress")
+	}
+
+	var r0 entities.Progress
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int) (entities.Progress, error)); ok {
+		return rf(ctx, goalId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int) entities.Progress); ok {
+		r0 = rf(ctx, goalId)
+	} else {
+		r0 = ret.Get(0).(entities.Progress)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = rf(ctx, goalId)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -70,6 +144,34 @@ func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitI
 	return r0, r1
 }
 
+// GetHabitGoal provides a mock function with given fields: ctx, habitId
+func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error) {
+	ret := _m.Called(ctx, habitId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetHabitGoal")
+	}
+
+	var r0 entities.Goal
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (entities.Goal, error)); ok {
+		return rf(ctx, habitId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) entities.Goal); ok {
+		r0 = rf(ctx, habitId)
+	} else {
+		r0 = ret.Get(0).(entities.Goal)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, habitId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListUserHabits provides a mock function with given fields: ctx, username
 func (_m *MockStorage) ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error) {
 	ret := _m.Called(ctx, username)
@@ -98,6 +200,24 @@ func (_m *MockStorage) ListUserHabits(ctx context.Context, username string) ([]e
 	}
 
 	return r0, r1
+}
+
+// UpdateGoalStat provides a mock function with given fields: ctx, goalId, progress
+func (_m *MockStorage) UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error {
+	ret := _m.Called(ctx, goalId, progress)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGoalStat")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int, entities.Progress) error); ok {
+		r0 = rf(ctx, goalId, progress)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
 }
 
 // NewMockStorage creates a new instance of MockStorage. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

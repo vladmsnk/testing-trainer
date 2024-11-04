@@ -17,6 +17,7 @@ func toEntityHabit(daoHabit habit) entities.Habit {
 		Id:          strconv.Itoa(daoHabit.id),
 		Description: daoHabit.description,
 		Goal: &entities.Goal{
+			Id:                   daoHabit.goalId.V,
 			TotalTrackingPeriods: daoHabit.totalTrackingPeriods.V,
 			TimesPerFrequency:    daoHabit.timesPerFrequency.V,
 			FrequencyType:        entities.FrequencyTypeFromString(daoHabit.frequencyType.V),

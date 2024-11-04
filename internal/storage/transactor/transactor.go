@@ -3,17 +3,18 @@ package transactor
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	pgx "github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"testing_trainer/config"
 )
 
 const txKey = "tx"
 
 type QueryEngine interface {
-	Query(ctx context.Context, query string, args ...interface{}) (pgx.Rows, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (commandTag pgconn.CommandTag, err error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 }
 
 type QueryEngineProvider interface {
@@ -24,11 +25,7 @@ type TransactionManager struct {
 	pool *pgxpool.Pool
 }
 
-func New(cfg *config.Postgres) (*TransactionManager, error) {
-	conn, err := pgxpool.New(context.Background(), cfg.GetConnectionString())
-	if err != nil {
-		return nil, fmt.Errorf("pgxpool.New: %w", err)
-	}
+func New(conn *pgxpool.Pool) (*TransactionManager, error) {
 	return &TransactionManager{pool: conn}, nil
 }
 
