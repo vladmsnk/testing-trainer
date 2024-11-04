@@ -42,7 +42,6 @@ services:
     restart: unless-stopped
     hostname: server
     environment:
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/db?sslmode=disable
       TOKEN_HOUR_LIFESPAN: 24       # Example value for TOKEN_HOUR_LIFESPAN
       REFRESH_HOUR_LIFESPAN: 48     # Example value for REFRESH_HOUR_LIFESPAN
       API_SECRET: api-secret   # Example value for API_SECRET

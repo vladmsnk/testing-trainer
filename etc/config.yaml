@@ -6,5 +6,5 @@ postgres:
   port: 5432
   user: "postgres"
   password: "postgres"
-  database: "db"
+  database: "postgres"
   sslmode: "disable"
