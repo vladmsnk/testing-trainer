@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"testing_trainer/internal/app/progress"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,6 +12,7 @@ import (
 	"testing_trainer/config"
 	"testing_trainer/internal/app/auth"
 	"testing_trainer/internal/app/habit"
+	"testing_trainer/internal/app/progress"
 	"testing_trainer/internal/usecase/user"
 	"testing_trainer/middlewares"
 )
@@ -21,6 +21,9 @@ func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/api/v1"
+
+	r.GET("/api/v1/version", getVersion)
+
 	authHandlers := r.Group("/api/v1/auth")
 	auth.NewAuthHandler(authHandlers, userUc)
 
@@ -39,4 +42,16 @@ func initPostgreSQLConnection(config config.Postgres) (*pgxpool.Pool, error) {
 		return nil, fmt.Errorf("pgxpool.New: %w", err)
 	}
 	return pool, nil
+}
+
+// getVersion godoc
+// @Summary Get API version
+// @Description Get the current version of the API
+// @Tags version
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]string
+// @Router /version [get]
+func getVersion(c *gin.Context) {
+	c.JSON(200, gin.H{"version": "1.0.0"})
 }

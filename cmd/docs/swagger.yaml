@@ -310,4 +310,21 @@ paths:
       summary: add progress endpoint
       tags:
       - example
+  /version:
+    get:
+      consumes:
+      - application/json
+      description: Get the current version of the API
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get API version
+      tags:
+      - version
 swagger: "2.0"
