@@ -1,20 +1,19 @@
 package storage
 
 import (
-	"strconv"
 	"testing_trainer/internal/entities"
 )
 
 func toEntityHabit(daoHabit habit) entities.Habit {
 	if !daoHabit.frequencyType.Valid && !daoHabit.timesPerFrequency.Valid && !daoHabit.totalTrackingPeriods.Valid {
 		return entities.Habit{
-			Id:          strconv.Itoa(daoHabit.id),
+			Id:          daoHabit.id,
 			Description: daoHabit.description,
 		}
 	}
 
 	return entities.Habit{
-		Id:          strconv.Itoa(daoHabit.id),
+		Id:          daoHabit.id,
 		Description: daoHabit.description,
 		Goal: &entities.Goal{
 			Id:                   daoHabit.goalId.V,

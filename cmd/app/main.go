@@ -50,7 +50,7 @@ func main() {
 	// usecases
 	var (
 		authUc    = user.New(store)
-		habitUc   = habit.New(store, authUc)
+		habitUc   = habit.New(store, authUc, tx)
 		processUc = progress.New(authUc, store, tx)
 	)
 

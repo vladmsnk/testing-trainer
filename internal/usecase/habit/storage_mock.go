@@ -15,7 +15,7 @@ type MockStorage struct {
 }
 
 // CreateGoal provides a mock function with given fields: ctx, habitID, goal
-func (_m *MockStorage) CreateGoal(ctx context.Context, habitID string, goal entities.Goal) (int, error) {
+func (_m *MockStorage) CreateGoal(ctx context.Context, habitID int, goal entities.Goal) (int, error) {
 	ret := _m.Called(ctx, habitID, goal)
 
 	if len(ret) == 0 {
@@ -24,16 +24,16 @@ func (_m *MockStorage) CreateGoal(ctx context.Context, habitID string, goal enti
 
 	var r0 int
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Goal) (int, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int, entities.Goal) (int, error)); ok {
 		return rf(ctx, habitID, goal)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Goal) int); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int, entities.Goal) int); ok {
 		r0 = rf(ctx, habitID, goal)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, entities.Goal) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, int, entities.Goal) error); ok {
 		r1 = rf(ctx, habitID, goal)
 	} else {
 		r1 = ret.Error(1)
@@ -43,22 +43,22 @@ func (_m *MockStorage) CreateGoal(ctx context.Context, habitID string, goal enti
 }
 
 // CreateHabit provides a mock function with given fields: ctx, username, _a2
-func (_m *MockStorage) CreateHabit(ctx context.Context, username string, _a2 entities.Habit) (int64, error) {
+func (_m *MockStorage) CreateHabit(ctx context.Context, username string, _a2 entities.Habit) (int, error) {
 	ret := _m.Called(ctx, username, _a2)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateHabit")
 	}
 
-	var r0 int64
+	var r0 int
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Habit) (int64, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Habit) (int, error)); ok {
 		return rf(ctx, username, _a2)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Habit) int64); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, entities.Habit) int); ok {
 		r0 = rf(ctx, username, _a2)
 	} else {
-		r0 = ret.Get(0).(int64)
+		r0 = ret.Get(0).(int)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, string, entities.Habit) error); ok {
@@ -117,7 +117,7 @@ func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (enti
 }
 
 // GetHabitById provides a mock function with given fields: ctx, username, habitId
-func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitId string) (entities.Habit, error) {
+func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error) {
 	ret := _m.Called(ctx, username, habitId)
 
 	if len(ret) == 0 {
@@ -126,16 +126,16 @@ func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitI
 
 	var r0 entities.Habit
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (entities.Habit, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int) (entities.Habit, error)); ok {
 		return rf(ctx, username, habitId)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) entities.Habit); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, string, int) entities.Habit); ok {
 		r0 = rf(ctx, username, habitId)
 	} else {
 		r0 = ret.Get(0).(entities.Habit)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
 		r1 = rf(ctx, username, habitId)
 	} else {
 		r1 = ret.Error(1)
@@ -145,7 +145,7 @@ func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitI
 }
 
 // GetHabitGoal provides a mock function with given fields: ctx, habitId
-func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error) {
+func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error) {
 	ret := _m.Called(ctx, habitId)
 
 	if len(ret) == 0 {
@@ -154,16 +154,16 @@ func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId string) (entiti
 
 	var r0 entities.Goal
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (entities.Goal, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int) (entities.Goal, error)); ok {
 		return rf(ctx, habitId)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) entities.Goal); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, int) entities.Goal); ok {
 		r0 = rf(ctx, habitId)
 	} else {
 		r0 = ret.Get(0).(entities.Goal)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
 		r1 = rf(ctx, habitId)
 	} else {
 		r1 = ret.Error(1)

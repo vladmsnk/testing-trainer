@@ -2,6 +2,7 @@ package habit
 
 import (
 	"context"
+	"github.com/stretchr/testify/mock"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -12,28 +13,29 @@ import (
 
 func TestCreateHabit(t *testing.T) {
 
-	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase) {
+	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase, *MockTransactor) {
 		mockStorage := NewMockStorage(t)
 		mockUserUc := NewMockUserUseCase(t)
+		mockTransactor := NewMockTransactor(t)
 
-		return mockStorage, mockUserUc
+		return mockStorage, mockUserUc, mockTransactor
 	}
 
 	var (
 		ctx             = context.Background()
 		username        = "username"
-		expectedHabitID = int64(1)
-		habitId         = "1"
+		expectedHabitID = 1
+		habitId         = 1
 	)
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, tx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
 		mockStorage.On("CreateHabit", ctx, username, entities.Habit{Id: habitId}).Return(expectedHabitID, nil)
-		habituc := New(mockStorage, mockUserUc)
+		habituc := New(mockStorage, mockUserUc, tx)
 
 		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Id: habitId})
 		require.Nil(t, err, "unexpected error")
@@ -43,10 +45,10 @@ func TestCreateHabit(t *testing.T) {
 	t.Run("user not found", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, tx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, user.ErrUserNotFound)
-		habituc := New(mockStorage, mockUserUc)
+		habituc := New(mockStorage, mockUserUc, tx)
 
 		habitID, err := habituc.CreateHabit(ctx, username, entities.Habit{Id: habitId})
 		require.ErrorIs(t, err, user.ErrUserNotFound, "unexpected error")
@@ -58,24 +60,25 @@ func TestListUserHabits(t *testing.T) {
 	var (
 		ctx            = context.Background()
 		username       = "username"
-		expectedHabits = []entities.Habit{{Id: "1"}, {Id: "2"}}
+		expectedHabits = []entities.Habit{{Id: 1}, {Id: 2}}
 	)
 
-	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase) {
+	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase, *MockTransactor) {
 		mockStorage := NewMockStorage(t)
 		mockUserUc := NewMockUserUseCase(t)
+		mockTransactor := NewMockTransactor(t)
 
-		return mockStorage, mockUserUc
+		return mockStorage, mockUserUc, mockTransactor
 	}
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, tx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
 		mockStorage.On("ListUserHabits", ctx, username).Return(expectedHabits, nil)
-		habituc := New(mockStorage, mockUserUc)
+		habituc := New(mockStorage, mockUserUc, tx)
 
 		habits, err := habituc.ListUserHabits(ctx, username)
 		require.Nil(t, err, "unexpected error")
@@ -85,10 +88,10 @@ func TestListUserHabits(t *testing.T) {
 	t.Run("user not found", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, tx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, storage.ErrNotFound)
-		habituc := New(mockStorage, mockUserUc)
+		habituc := New(mockStorage, mockUserUc, tx)
 
 		habits, err := habituc.ListUserHabits(ctx, username)
 		require.ErrorIs(t, err, ErrUserNotFound, "unexpected error")
@@ -98,17 +101,18 @@ func TestListUserHabits(t *testing.T) {
 
 func TestUpdateHabit(t *testing.T) {
 
-	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase) {
+	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase, *MockTransactor) {
 		mockStorage := NewMockStorage(t)
 		mockUserUc := NewMockUserUseCase(t)
+		mockTransactor := NewMockTransactor(t)
 
-		return mockStorage, mockUserUc
+		return mockStorage, mockUserUc, mockTransactor
 	}
 
 	var (
 		ctx      = context.Background()
 		username = "username"
-		habitId  = "1"
+		habitId  = 1
 	)
 
 	var (
@@ -131,7 +135,13 @@ func TestUpdateHabit(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
 
-		mockStorage, mockUserUc := initFunc(t)
+		mockStorage, mockUserUc, tx := initFunc(t)
+
+		tx.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
+
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
 
 		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
@@ -140,7 +150,7 @@ func TestUpdateHabit(t *testing.T) {
 		mockStorage.On("GetCurrentProgress", ctx, goal.Id).Return(currentProgress, nil)
 		mockStorage.On("UpdateGoalStat", ctx, newGoal.Id, currentProgress).Return(nil)
 
-		habituc := New(mockStorage, mockUserUc)
+		habituc := New(mockStorage, mockUserUc, tx)
 		err := habituc.UpdateHabit(ctx, username, newHabit)
 		require.Nil(t, err)
 	})

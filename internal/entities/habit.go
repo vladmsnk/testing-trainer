@@ -1,7 +1,8 @@
 package entities
 
 type Habit struct {
-	Id          string
+	Id          int
+	Name        string
 	Description string
 	Goal        *Goal
 	IsArchived  bool

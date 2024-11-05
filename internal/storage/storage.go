@@ -30,7 +30,7 @@ func NewStorage(db *pgxpool.Pool) *Storage {
 	return &Storage{db: db, queryEngineProvider: txManager}
 }
 
-func (s *Storage) CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error) {
+func (s *Storage) CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error) {
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return 0, fmt.Errorf("db.BeginTx: %w", err)
@@ -56,16 +56,16 @@ func (s *Storage) CreateHabit(ctx context.Context, username string, habit entiti
 	return habitId, nil
 }
 
-func (s *Storage) createHabitTx(ctx context.Context, tx pgx.Tx, username string, habit entities.Habit) (int64, error) {
+func (s *Storage) createHabitTx(ctx context.Context, tx pgx.Tx, username string, habit entities.Habit) (int, error) {
 	query := `
-INSERT INTO habits (username, description)
-VALUES ($1, $2)
+INSERT INTO habits (username, name, description)
+VALUES ($1, $2, $3)
 returning id;
 `
 
-	var habitID int64
+	var habitID int
 
-	err := tx.QueryRow(ctx, query, username, habit.Description).Scan(&habitID)
+	err := tx.QueryRow(ctx, query, username, habit.Name, habit.Description).Scan(&habitID)
 	if err != nil {
 		return 0, fmt.Errorf("tx.Exec user_id=%s description=%s: %w", username, habit.Description, err)
 	}
@@ -73,7 +73,7 @@ returning id;
 	return habitID, nil
 }
 
-func (s *Storage) CreateGoal(ctx context.Context, habitID string, goal entities.Goal) (int, error) {
+func (s *Storage) CreateGoal(ctx context.Context, habitID int, goal entities.Goal) (int, error) {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
@@ -86,13 +86,13 @@ RETURNING id;
 
 	err := pool.QueryRow(ctx, query, habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods).Scan(&goalId)
 	if err != nil {
-		return 0, fmt.Errorf("tx.Exec habit_id=%s frequency_type=%s times_per_frequency=%d total_tracking_periods=%d: %w", habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, err)
+		return 0, fmt.Errorf("tx.Exec habit_id=%d frequency_type=%s times_per_frequency=%d total_tracking_periods=%d: %w", habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, err)
 	}
 
 	return goalId, nil
 }
 
-func (s *Storage) createGoalTx(ctx context.Context, tx pgx.Tx, habitID int64, goal *entities.Goal) error {
+func (s *Storage) createGoalTx(ctx context.Context, tx pgx.Tx, habitID int, goal *entities.Goal) error {
 	if goal == nil {
 		return nil
 	}
@@ -156,7 +156,7 @@ select
     g.times_per_frequency as times_per_frequency,
     g.total_tracking_periods as total_tracking_periods
 from habits h 
-    left join goals g on h.id = g.habit_id 
+    left join goals g on h.id = g.habit_id and g.is_active = true
 where h.username = $1;
 `
 
@@ -181,24 +181,25 @@ where h.username = $1;
 	return result, nil
 }
 
-func (s *Storage) GetHabitById(ctx context.Context, username, habitId string) (entities.Habit, error) {
+func (s *Storage) GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error) {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
 select 
     h.id as id, 
     h.description as description,
+    g.id as goal_id,
     g.frequency_type as frequency_type, 
     g.times_per_frequency as times_per_frequency,
-    g.total_tracking_days as total_tracking_days
+    g.total_tracking_periods as total_tracking_periods
 from habits h 
     left join goals g on h.id = g.habit_id 
 where h.username = $1 
-  and h.name = $2;`
+  and h.id = $2;`
 
 	var daoHabit habit
 
-	err := pool.QueryRow(ctx, query, username, habitId).Scan(&daoHabit.id, &daoHabit.description, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods)
+	err := pool.QueryRow(ctx, query, username, habitId).Scan(&daoHabit.id, &daoHabit.description, &daoHabit.goalId, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Habit{}, ErrNotFound
@@ -209,11 +210,11 @@ where h.username = $1
 	return toEntityHabit(daoHabit), nil
 }
 
-func (s *Storage) GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error) {
+func (s *Storage) GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error) {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-select id, frequency_type, times_per_frequency, total_tracking_periods from goals where habit_id = (select id from habits where name = $1);
+select id, frequency_type, times_per_frequency, total_tracking_periods from goals where habit_id = $1 and is_active = true;
 	`
 	var daoGoal goal
 
@@ -267,7 +268,8 @@ func (s *Storage) UpdateGoalStat(ctx context.Context, goalId int, progress entit
 		total_completed_periods = $2,
 		total_completed_times = $3,
 		most_longest_streak = $4,
-		current_streak = $5;
+		current_streak = $5,
+		updated_at = now();
 	`
 
 	_, err := pool.Exec(ctx, query, goalId, progress.TotalCompletedPeriods, progress.TotalCompletedTimes, progress.MostLongestStreak, progress.CurrentStreak)

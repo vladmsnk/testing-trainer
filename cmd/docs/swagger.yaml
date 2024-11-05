@@ -69,8 +69,8 @@ definitions:
       goal:
         $ref: '#/definitions/habit.Goal'
       id:
-        example: "1"
-        type: string
+        example: 1
+        type: integer
     type: object
   habit.UpdateHabitRequest:
     properties:
@@ -79,9 +79,9 @@ definitions:
         type: string
       goal:
         $ref: '#/definitions/habit.Goal'
-      name:
-        example: Drink water
-        type: string
+      id:
+        example: 1
+        type: integer
     type: object
 info:
   contact: {}
@@ -256,7 +256,7 @@ paths:
         type: string
       - description: Habit ID
         in: path
-        name: habitID
+        name: habitId
         required: true
         type: string
       produces:
@@ -289,7 +289,7 @@ paths:
         type: string
       - description: Habit ID
         in: path
-        name: habitID
+        name: habitId
         required: true
         type: string
       produces:

@@ -88,9 +88,9 @@ func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (enti
 	return r0, r1
 }
 
-// GetHabitGoal provides a mock function with given fields: ctx, habitName
-func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitName string) (entities.Goal, error) {
-	ret := _m.Called(ctx, habitName)
+// GetHabitGoal provides a mock function with given fields: ctx, habitId
+func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error) {
+	ret := _m.Called(ctx, habitId)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetHabitGoal")
@@ -98,17 +98,17 @@ func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitName string) (enti
 
 	var r0 entities.Goal
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (entities.Goal, error)); ok {
-		return rf(ctx, habitName)
+	if rf, ok := ret.Get(0).(func(context.Context, int) (entities.Goal, error)); ok {
+		return rf(ctx, habitId)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) entities.Goal); ok {
-		r0 = rf(ctx, habitName)
+	if rf, ok := ret.Get(0).(func(context.Context, int) entities.Goal); ok {
+		r0 = rf(ctx, habitId)
 	} else {
 		r0 = ret.Get(0).(entities.Goal)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, habitName)
+	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
+		r1 = rf(ctx, habitId)
 	} else {
 		r1 = ret.Error(1)
 	}

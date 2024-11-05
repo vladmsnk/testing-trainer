@@ -22,7 +22,7 @@ func TestGetHabitProgress(t *testing.T) {
 	var (
 		ctx      = context.Background()
 		username = "username"
-		habitId  = "1"
+		habitId  = 1
 		goal     = entities.Goal{
 			Id:                   1,
 			FrequencyType:        entities.Daily,
@@ -109,7 +109,7 @@ func TestAddHabitProgress(t *testing.T) {
 			TimesPerFrequency:    2,
 			TotalTrackingPeriods: 30,
 		}
-		habitId = "habit"
+		habitId = 1
 	)
 
 	t.Run("success: increase total completed periods", func(t *testing.T) {
@@ -363,7 +363,7 @@ func TestAddHabitProgress(t *testing.T) {
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
 		mockStorage.On("GetCurrentProgress", ctx, 1).Return(currentProgress, nil)
-		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goal.Id, goal.FrequencyType).Return(0, nil)
+		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goal.Id, goal.FrequencyType).Return(2, nil)
 		mockStorage.On("GetCurrentPeriodExecutionCount", ctx, goal.Id, goal.FrequencyType).Return(1, nil)
 		mockStorage.On("AddHabitProgress", ctx, goal.Id).Return(nil)
 		mockStorage.On("UpdateGoalStat", ctx, goal.Id, updateGoalStateEntity).Return(nil)

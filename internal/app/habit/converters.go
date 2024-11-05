@@ -8,6 +8,7 @@ func toCreateHabitEntity(habit CreateHabitRequest) entities.Habit {
 	if habit.Goal == nil {
 		return entities.Habit{
 			Description: habit.Description,
+			Name:        habit.Name,
 		}
 	}
 

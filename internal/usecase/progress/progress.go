@@ -18,8 +18,8 @@ var (
 )
 
 type UseCase interface {
-	GetHabitProgress(ctx context.Context, username, habitId string) (entities.ProgressWithGoal, error)
-	AddHabitProgress(ctx context.Context, username, habitId string) error
+	GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error)
+	AddHabitProgress(ctx context.Context, username string, habitId int) error
 }
 
 type UserUseCase interface {
@@ -32,7 +32,7 @@ type Transactor interface {
 
 type Storage interface {
 	AddHabitProgress(ctx context.Context, goalId int) error
-	GetHabitGoal(ctx context.Context, habitId string) (entities.Goal, error)
+	GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error)
 	GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error)
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
@@ -54,7 +54,7 @@ func New(userUc UserUseCase, storage Storage, transactor Transactor) *Implementa
 	}
 }
 
-func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitId string) (entities.ProgressWithGoal, error) {
+func (i *Implementation) GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error) {
 	_, err := i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return entities.ProgressWithGoal{}, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
@@ -79,7 +79,7 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username, habitId
 	}, nil
 }
 
-func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitId string) error {
+func (i *Implementation) AddHabitProgress(ctx context.Context, username string, habitId int) error {
 	err := i.transactor.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
 		_, err := i.userUc.GetUserByUsername(ctx, username)
 		if err != nil {
@@ -114,13 +114,20 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitId
 		goalIsCompleted := false
 
 		updatedProgress.TotalCompletedTimes = currentProgress.TotalCompletedTimes + 1
-		if currentExecutionCount == goal.TimesPerFrequency { // If the goal is completed for the current period
-			updatedProgress.TotalCompletedPeriods = currentProgress.TotalCompletedPeriods + 1
-			updatedProgress.CurrentStreak = currentProgress.CurrentStreak + 1
 
-			// Check if the current streak is the longest streak
-			if (lastPeriodExecutionCount >= goal.TimesPerFrequency || lastPeriodExecutionCount == 0) && currentProgress.CurrentStreak+1 > currentProgress.MostLongestStreak {
-				updatedProgress.MostLongestStreak = currentProgress.CurrentStreak + 1
+		// Check if the goal is completed for the current period
+		if currentExecutionCount == goal.TimesPerFrequency {
+			updatedProgress.TotalCompletedPeriods = currentProgress.TotalCompletedPeriods + 1
+
+			// Streak logic: reset or increment the streak
+			if lastPeriodExecutionCount >= goal.TimesPerFrequency {
+				updatedProgress.CurrentStreak = currentProgress.CurrentStreak + 1
+			} else {
+				updatedProgress.CurrentStreak = 1
+			}
+
+			if updatedProgress.CurrentStreak > currentProgress.MostLongestStreak {
+				updatedProgress.MostLongestStreak = updatedProgress.CurrentStreak
 			}
 
 			if updatedProgress.TotalCompletedPeriods == goal.TotalTrackingPeriods {
@@ -149,7 +156,6 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username, habitId
 
 	return err
 }
-
 func (i *Implementation) AsyncUpdateGoalStat(ctx context.Context) {
 
 }

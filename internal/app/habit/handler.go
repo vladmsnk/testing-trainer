@@ -15,7 +15,7 @@ type Handler struct {
 }
 
 type UseCase interface {
-	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int64, error)
+	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	UpdateHabit(ctx context.Context, username string, habit entities.Habit) error
 }
@@ -65,7 +65,7 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"HabitId": strconv.Itoa(int(id))})
+	c.JSON(http.StatusCreated, gin.H{"HabitId": strconv.Itoa(id)})
 }
 
 // ListUserHabits godoc

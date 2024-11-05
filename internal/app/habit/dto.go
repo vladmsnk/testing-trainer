@@ -29,7 +29,7 @@ func (r *CreateHabitRequest) Validate() error {
 }
 
 func (r *UpdateHabitRequest) Validate() error {
-	if r.Id == "" {
+	if r.Id == 0 {
 		return fmt.Errorf("id is required")
 	}
 
@@ -41,7 +41,7 @@ func (r *UpdateHabitRequest) Validate() error {
 }
 
 type UpdateHabitRequest struct {
-	Id          string `json:"id" example:"1"`
+	Id          int    `json:"id" example:"1"`
 	Description string `json:"description" example:"Drink 2 liters of water every day"`
 	Goal        *Goal  `json:"goal,omitempty"`
 }
@@ -52,7 +52,7 @@ type ListUserHabitsResponse struct {
 }
 
 type ResponseHabit struct {
-	Id          string `json:"id" example:"1"`
+	Id          int    `json:"id" example:"1"`
 	Description string `json:"description" example:"Drink 2 liters of water every day"`
 	Goal        *Goal  `json:"goal,omitempty"`
 }

@@ -277,7 +277,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Habit ID",
-                        "name": "habitID",
+                        "name": "habitId",
                         "in": "path",
                         "required": true
                     }
@@ -326,7 +326,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "Habit ID",
-                        "name": "habitID",
+                        "name": "habitId",
                         "in": "path",
                         "required": true
                     }
@@ -452,8 +452,8 @@ const docTemplate = `{
                     "$ref": "#/definitions/habit.Goal"
                 },
                 "id": {
-                    "type": "string",
-                    "example": "1"
+                    "type": "integer",
+                    "example": 1
                 }
             }
         },
@@ -467,9 +467,9 @@ const docTemplate = `{
                 "goal": {
                     "$ref": "#/definitions/habit.Goal"
                 },
-                "name": {
-                    "type": "string",
-                    "example": "Drink water"
+                "id": {
+                    "type": "integer",
+                    "example": 1
                 }
             }
         }
