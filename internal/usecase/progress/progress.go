@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"testing_trainer/internal/entities"
 	"testing_trainer/internal/storage"
@@ -33,11 +34,11 @@ type Transactor interface {
 type Storage interface {
 	AddHabitProgress(ctx context.Context, goalId int) error
 	GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error)
-	GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error)
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
-	GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error)
 	SetGoalCompleted(ctx context.Context, goalId int) error
+	GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
+	GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
 }
 
 type Implementation struct {
@@ -99,12 +100,12 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 			return fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
 		}
 
-		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType)
+		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentProgress.TotalCompletedPeriods)
 		if err != nil {
 			return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
 		}
 
-		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType)
+		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentProgress.TotalCompletedPeriods)
 		if err != nil {
 			return fmt.Errorf("i.storage.GetTodayExecutionCount: %w", err)
 		}

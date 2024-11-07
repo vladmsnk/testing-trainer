@@ -1,5 +1,7 @@
 package entities
 
+import "time"
+
 type Habit struct {
 	Id          int
 	Name        string
@@ -14,6 +16,7 @@ type Goal struct {
 	TimesPerFrequency    int
 	TotalTrackingPeriods int
 	IsActive             bool
+	CreatedAt            time.Time
 }
 
 func IsGoalChanged(old, new *Goal) bool {

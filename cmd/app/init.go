@@ -55,3 +55,7 @@ func initPostgreSQLConnection(config config.Postgres) (*pgxpool.Pool, error) {
 func getVersion(c *gin.Context) {
 	c.JSON(200, gin.H{"version": "1.0.0"})
 }
+
+//func runCron() {
+//	gocron.New
+//}

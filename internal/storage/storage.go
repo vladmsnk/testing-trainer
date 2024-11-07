@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"testing_trainer/internal/storage/transactor"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -214,11 +215,11 @@ func (s *Storage) GetHabitGoal(ctx context.Context, habitId int) (entities.Goal,
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-select id, frequency_type, times_per_frequency, total_tracking_periods from goals where habit_id = $1 and is_active = true;
+select id, frequency_type, times_per_frequency, total_tracking_periods, created_at from goals where habit_id = $1 and is_active = true;
 	`
 	var daoGoal goal
 
-	err := pool.QueryRow(ctx, query, habitId).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods)
+	err := pool.QueryRow(ctx, query, habitId).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods, &daoGoal.createdAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Goal{}, ErrNotFound
@@ -280,87 +281,54 @@ func (s *Storage) UpdateGoalStat(ctx context.Context, goalId int, progress entit
 	return nil
 }
 
-func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error) {
-	pool := s.queryEngineProvider.GetQueryEngine(ctx)
-
-	var query string
-
+func calculatePeriodRange(createdAt time.Time, frequencyType entities.FrequencyType, periodOffset int) (start time.Time, end time.Time) {
 	switch frequencyType {
 	case entities.Daily:
-		query = `
-		SELECT COUNT(*) 
-		FROM goal_logs 
-		WHERE goal_id = $1 
-		AND record_created_at::date = current_date - interval '1 day';
-		`
+		start = createdAt.AddDate(0, 0, periodOffset)
+		end = start.AddDate(0, 0, 1)
 	case entities.Weekly:
-		query = `
-		SELECT COUNT(*) 
-		FROM goal_logs 
-		WHERE goal_id = $1 
-		AND record_created_at >= date_trunc('week', current_date - interval '1 week') 
-		AND record_created_at < date_trunc('week', current_date);
-		`
+		start = createdAt.AddDate(0, 0, periodOffset*7)
+		end = start.AddDate(0, 0, 7)
 	case entities.Monthly:
-		query = `
-		SELECT COUNT(*) 
-		FROM goal_logs 
-		WHERE goal_id = $1 
-		AND record_created_at >= date_trunc('month', current_date - interval '1 month') 
-		AND record_created_at < date_trunc('month', current_date);
-		`
-	default:
-		return 0, fmt.Errorf("unsupported frequncy type: %v", frequencyType)
+		start = createdAt.AddDate(0, periodOffset, 0)
+		end = start.AddDate(0, 1, 0)
 	}
+	return start, end
+}
+
+func (s *Storage) getExecutionCountForPeriod(ctx context.Context, goalId int, start, end time.Time) (int, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+    SELECT COUNT(*) 
+    FROM goal_logs 
+    WHERE goal_id = $1 
+    AND record_created_at >= $2 
+    AND record_created_at < $3;
+    `
 
 	var count int
-	err := pool.QueryRow(ctx, query, goalId).Scan(&count)
+	err := pool.QueryRow(ctx, query, goalId, start, end).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("db.QueryRow: %w", err)
 	}
 
 	return count, nil
 }
-func (s *Storage) GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType) (int, error) {
-	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
-	var query string
-
-	switch frequencyType {
-	case entities.Daily:
-		query = `
-		SELECT COUNT(*) 
-		FROM goal_logs 
-		WHERE goal_id = $1 
-		AND record_created_at::date = current_date;
-		`
-	case entities.Weekly:
-		query = `
-		SELECT COUNT(*) 
-		FROM goal_logs 
-		WHERE goal_id = $1 
-		AND record_created_at >= date_trunc('week', current_date) 
-		AND record_created_at < date_trunc('week', current_date + interval '1 week');
-		`
-	case entities.Monthly:
-		query = `
-		SELECT COUNT(*) 
-		FROM goal_logs 
-		WHERE goal_id = $1 
-		AND record_created_at >= date_trunc('month', current_date) 
-		AND record_created_at < date_trunc('month', current_date + interval '1 month');
-		`
-	default:
-		return 0, fmt.Errorf("unsupported frequency type: %v", frequencyType)
+func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error) {
+	// The first period has no previous period
+	if currentPeriod == 0 {
+		return 0, nil
 	}
 
-	var count int
-	err := pool.QueryRow(ctx, query, goalId).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("db.QueryRow: %w", err)
-	}
+	start, end := calculatePeriodRange(createdAt, frequencyType, currentPeriod-1)
+	return s.getExecutionCountForPeriod(ctx, goalId, start, end)
+}
 
-	return count, nil
+func (s *Storage) GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error) {
+	start, end := calculatePeriodRange(createdAt, frequencyType, currentPeriod)
+	return s.getExecutionCountForPeriod(ctx, goalId, start, end)
 }
 
 func (s *Storage) GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error) {

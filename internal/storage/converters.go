@@ -30,5 +30,6 @@ func toEntityGoal(daoGoal goal) entities.Goal {
 		TotalTrackingPeriods: daoGoal.totalTrackingPeriods,
 		TimesPerFrequency:    daoGoal.timesPerFrequency,
 		FrequencyType:        entities.FrequencyTypeFromString(daoGoal.frequencyType),
+		CreatedAt:            daoGoal.createdAt,
 	}
 }
