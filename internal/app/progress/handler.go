@@ -17,6 +17,7 @@ type Handler struct {
 type UseCase interface {
 	GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error)
 	AddHabitProgress(ctx context.Context, username string, habitId int) error
+	GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error)
 }
 
 func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
@@ -24,6 +25,7 @@ func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
 
 	r.POST("/progress/:habitId", h.AddProgress)
 	r.GET("/progress/:habitId", h.GetHabitProgress)
+	r.GET("/reminder", h.GetReminder)
 }
 
 // AddProgress godoc
@@ -106,4 +108,30 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, toHabitProgressResponse(progressWithGoal))
+}
+
+// GetReminder godoc
+// @Summary get reminder endpoint
+// @Schemes
+// @Description Get reminder for the user
+// @Tags example
+// @Accept json
+// @Produce json
+// @Param Authorization header string true "Bearer"
+// @Success 200 {string} ok
+// @Failure 500 {string} string "Internal Server Error"
+func (h *Handler) GetReminder(c *gin.Context) {
+	username, err := token.ExtractUsernameFromToken(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	currentProgressForAllUserHabits, err := h.uc.GetCurrentProgressForAllUserHabits(c, username)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while retrieving habit progress"})
+		return
+	}
+
+	c.JSON(http.StatusOK, toReminderResponse(currentProgressForAllUserHabits))
 }

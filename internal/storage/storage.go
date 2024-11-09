@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"testing_trainer/internal/storage/transactor"
 	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"testing_trainer/internal/entities"
+	"testing_trainer/internal/storage/transactor"
 )
 
 var (
@@ -362,4 +362,101 @@ update goals set is_completed = true where id = $1;
 	}
 
 	return nil
+}
+
+func (s *Storage) GetAllGoalsNeedCheck(ctx context.Context) ([]entities.Goal, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	currentTime := time.Now().UTC()
+
+	query := `
+select id, frequency_type, times_per_frequency, total_tracking_periods, created_at 
+from goals 
+where is_active = true 
+  and is_completed = false
+  and next_check_date < $1;
+`
+	rows, err := pool.Query(ctx, query, currentTime)
+	if err != nil {
+		return nil, fmt.Errorf("db.Query: %w", err)
+	}
+	defer rows.Close()
+
+	var result []entities.Goal
+
+	for rows.Next() {
+		var daoGoal goal
+
+		err := rows.Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods, &daoGoal.createdAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		result = append(result, toEntityGoal(daoGoal))
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("rows.Err: %w", rows.Err())
+	}
+
+	return result, nil
+}
+
+func (s *Storage) SetGoalNextCheckDate(ctx context.Context, goalId int, nextCheckDate time.Time) error {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+update goals set next_check_date = $2 where id = $1;
+`
+	_, err := pool.Exec(ctx, query, goalId, nextCheckDate)
+	if err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) GetAllUserHabitsWithGoals(ctx context.Context, username string) ([]entities.Habit, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+select 
+    g.id as goal_id, 
+    g.frequency_type, 
+    g.times_per_frequency, 
+    g.total_tracking_periods, 
+    h.id as habit_id, 
+    h.description as habit_description
+from 
+    goals g
+join 
+    habits h 
+on 
+    g.habit_id = h.id
+where 
+    g.is_active = true 
+    and h.username = $1;
+`
+	rows, err := pool.Query(ctx, query, username)
+	if err != nil {
+		return nil, fmt.Errorf("db.Query: %w", err)
+	}
+	defer rows.Close()
+
+	var result []entities.Habit
+
+	for rows.Next() {
+		var h habit
+		err := rows.Scan(&h.goalId, &h.frequencyType, &h.timesPerFrequency, &h.totalTrackingPeriods, &h.id, &h.description)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		result = append(result, toEntityHabit(h))
+	}
+
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("rows.Err: %w", rows.Err())
+	}
+
+	return result, nil
 }

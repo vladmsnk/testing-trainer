@@ -17,6 +17,7 @@ type Goal struct {
 	TotalTrackingPeriods int
 	IsActive             bool
 	CreatedAt            time.Time
+	NextCheckDate        time.Time
 }
 
 func IsGoalChanged(old, new *Goal) bool {
@@ -69,4 +70,24 @@ func FrequencyTypeFromString(s string) FrequencyType {
 		return UndefinedFrequencyType
 	}
 
+}
+
+func (g Goal) GetCurrentPeriod() int {
+	switch g.FrequencyType {
+	case Daily:
+		// Calculate the number of full days since createdAt
+		return int(time.Since(g.CreatedAt).Hours() / 24)
+
+	case Weekly:
+		// Calculate the number of full weeks since createdAt
+		return int(time.Since(g.CreatedAt).Hours() / (24 * 7))
+
+	case Monthly:
+		// Calculate the number of full 31-day months since createdAt
+		daysSinceCreated := int(time.Since(g.CreatedAt).Hours() / 24)
+		return daysSinceCreated / 31 // Each "month" is treated as 31 days
+
+	default:
+		return 0
+	}
 }

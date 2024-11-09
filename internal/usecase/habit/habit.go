@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"testing_trainer/internal/entities"
 	"testing_trainer/internal/storage"
@@ -57,6 +58,21 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 	_, err := i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return 0, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+	}
+
+	if habit.Goal != nil {
+		var nextCheckDate time.Time
+
+		switch habit.Goal.FrequencyType {
+		case entities.Daily:
+			nextCheckDate = time.Now().Add(24 * time.Hour).Add(5 * time.Minute)
+		case entities.Weekly:
+			nextCheckDate = time.Now().AddDate(0, 0, 7).Add(5 * time.Minute)
+		case entities.Monthly:
+			nextCheckDate = time.Now().AddDate(0, 1, 0).Add(5 * time.Minute)
+		}
+
+		habit.Goal.NextCheckDate = nextCheckDate.UTC()
 	}
 
 	createdHabitId, err := i.storage.CreateHabit(ctx, username, habit)

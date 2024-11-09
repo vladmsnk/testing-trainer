@@ -2,14 +2,14 @@ package main
 
 import (
 	"database/sql"
-	"log"
-	"strconv"
-
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
+	"log"
+	"strconv"
 	"testing_trainer/config"
 	"testing_trainer/internal/storage"
 	"testing_trainer/internal/storage/transactor"
+	"testing_trainer/internal/usecase/goals_checker"
 	"testing_trainer/internal/usecase/habit"
 	"testing_trainer/internal/usecase/progress"
 	"testing_trainer/internal/usecase/user"
@@ -47,12 +47,21 @@ func main() {
 		log.Fatal(err.Error())
 	}
 
-	// usecases
 	var (
-		authUc    = user.New(store)
-		habitUc   = habit.New(store, authUc, tx)
-		processUc = progress.New(authUc, store, tx)
+		authUc         = user.New(store)
+		habitUc        = habit.New(store, authUc, tx)
+		processUc      = progress.New(authUc, store, tx)
+		goalsCheckerUC = goals_checker.NewChecker(store, tx)
 	)
+
+	scheduler, err := runCheckGoalsScheduler(goalsCheckerUC)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		scheduler.Shutdown()
+	}()
+	scheduler.Start()
 
 	router := setupRouter(authUc, habitUc, processUc)
 	log.Println("Swagger is available on http://" + config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port) + "/swagger/index.html")

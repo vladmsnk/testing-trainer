@@ -2,9 +2,9 @@ http:
   host: "0.0.0.0"
   port: 7001
 postgres:
-  host: "postgres"
+  host: "localhost"
   port: 5432
   user: "postgres"
   password: "postgres"
-  database: "postgres"
+  database: "db"
   sslmode: "disable"

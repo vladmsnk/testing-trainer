@@ -21,6 +21,7 @@ var (
 type UseCase interface {
 	GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error)
 	AddHabitProgress(ctx context.Context, username string, habitId int) error
+	GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error)
 }
 
 type UserUseCase interface {
@@ -39,6 +40,9 @@ type Storage interface {
 	SetGoalCompleted(ctx context.Context, goalId int) error
 	GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
 	GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
+	GetAllGoalsNeedCheck(ctx context.Context) ([]entities.Goal, error)
+	SetGoalNextCheckDate(ctx context.Context, goalId int, nextCheckDate time.Time) error
+	GetAllUserHabitsWithGoals(ctx context.Context, username string) ([]entities.Habit, error)
 }
 
 type Implementation struct {
@@ -100,12 +104,14 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 			return fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
 		}
 
-		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentProgress.TotalCompletedPeriods)
+		currentPeriod := goal.GetCurrentPeriod()
+
+		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentPeriod)
 		if err != nil {
 			return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
 		}
 
-		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentProgress.TotalCompletedPeriods)
+		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentPeriod)
 		if err != nil {
 			return fmt.Errorf("i.storage.GetTodayExecutionCount: %w", err)
 		}
@@ -157,6 +163,39 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 
 	return err
 }
-func (i *Implementation) AsyncUpdateGoalStat(ctx context.Context) {
 
+func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error) {
+	_, err := i.userUc.GetUserByUsername(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+	}
+
+	userHabits, err := i.storage.GetAllUserHabitsWithGoals(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("i.storage.GetAllUserHabitsWithGoals: %w", err)
+	}
+
+	var result []entities.CurrentPeriodProgress
+	for _, habit := range userHabits {
+		var currentPeriodProgress entities.CurrentPeriodProgress
+
+		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, habit.Goal.Id, habit.Goal.FrequencyType, habit.Goal.CreatedAt, habit.Goal.GetCurrentPeriod())
+		if err != nil {
+			return nil, fmt.Errorf("i.storage.GetCurrentPeriodExecutionCount: %w", err)
+		}
+
+		if currentPeriodExecutionCount >= habit.Goal.TimesPerFrequency {
+			// Skip habits that are already completed for the current period
+			continue
+		}
+
+		currentPeriodProgress.Habit = habit
+		currentPeriodProgress.CurrentPeriodCompletedTimes = currentPeriodExecutionCount
+		currentPeriodProgress.NeedToCompleteTimes = habit.Goal.TimesPerFrequency
+		currentPeriodProgress.CurrentPeriod = habit.Goal.GetCurrentPeriod() + 1
+
+		result = append(result, currentPeriodProgress)
+	}
+
+	return result, nil
 }

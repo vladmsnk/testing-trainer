@@ -9,6 +9,14 @@ type Progress struct {
 }
 
 type ProgressWithGoal struct {
+	Habit
 	Progress
 	Goal
+}
+
+type CurrentPeriodProgress struct {
+	Habit                       Habit
+	CurrentPeriodCompletedTimes int
+	NeedToCompleteTimes         int
+	CurrentPeriod               int
 }
