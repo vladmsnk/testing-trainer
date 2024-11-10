@@ -59,6 +59,7 @@ func runCheckGoalsScheduler(checker goals_checker.Checker) (gocron.Scheduler, er
 		if err != nil {
 			log.Println("Error while checking goals: ", err)
 		}
+		log.Println("Goals checked")
 		return
 	})
 

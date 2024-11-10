@@ -120,6 +120,7 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 // @Param Authorization header string true "Bearer"
 // @Success 200 {string} ok
 // @Failure 500 {string} string "Internal Server Error"
+// @Router /tracker/reminder [get]
 func (h *Handler) GetReminder(c *gin.Context) {
 	username, err := token.ExtractUsernameFromToken(c)
 	if err != nil {

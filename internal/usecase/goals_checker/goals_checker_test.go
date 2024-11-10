@@ -17,8 +17,8 @@ func TestCheckGoals(t *testing.T) {
 		TimesPerFrequency:    3,
 		TotalTrackingPeriods: 4,
 		IsActive:             true,
-		CreatedAt:            time.Now().AddDate(0, 0, -7),
-		NextCheckDate:        time.Now().Add(-time.Hour),
+		CreatedAt:            time.Now().UTC().AddDate(0, 0, -7),
+		NextCheckDate:        time.Now().UTC().Add(-time.Hour),
 	},
 	}
 

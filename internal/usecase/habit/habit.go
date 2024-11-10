@@ -123,6 +123,7 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 		if !entities.IsGoalChanged(currentGoal, newGoal) {
 			return nil
 		}
+		newGoal.NextCheckDate = currentGoal.NextCheckDate
 
 		err = i.storage.DeactivateGoalByID(ctx, currentGoal.Id)
 		if err != nil {

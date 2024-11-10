@@ -27,9 +27,6 @@ definitions:
         type: string
       goal:
         $ref: '#/definitions/habit.Goal'
-      name:
-        example: Drink water
-        type: string
     type: object
   habit.Goal:
     properties:
@@ -308,6 +305,31 @@ paths:
           schema:
             type: string
       summary: add progress endpoint
+      tags:
+      - example
+  /tracker/reminder:
+    get:
+      consumes:
+      - application/json
+      description: Get reminder for the user
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: get reminder endpoint
       tags:
       - example
   /version:

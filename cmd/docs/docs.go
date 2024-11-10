@@ -353,6 +353,44 @@ const docTemplate = `{
                 }
             }
         },
+        "/tracker/reminder": {
+            "get": {
+                "description": "Get reminder for the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "get reminder endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/version": {
             "get": {
                 "description": "Get the current version of the API",
@@ -420,10 +458,6 @@ const docTemplate = `{
                 },
                 "goal": {
                     "$ref": "#/definitions/habit.Goal"
-                },
-                "name": {
-                    "type": "string",
-                    "example": "Drink water"
                 }
             }
         },

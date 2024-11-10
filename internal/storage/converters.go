@@ -20,6 +20,8 @@ func toEntityHabit(daoHabit habit) entities.Habit {
 			TotalTrackingPeriods: daoHabit.totalTrackingPeriods.V,
 			TimesPerFrequency:    daoHabit.timesPerFrequency.V,
 			FrequencyType:        entities.FrequencyTypeFromString(daoHabit.frequencyType.V),
+			NextCheckDate:        daoHabit.nextCheckDate.V,
+			CreatedAt:            daoHabit.createdAt.V,
 		},
 	}
 }
@@ -31,5 +33,6 @@ func toEntityGoal(daoGoal goal) entities.Goal {
 		TimesPerFrequency:    daoGoal.timesPerFrequency,
 		FrequencyType:        entities.FrequencyTypeFromString(daoGoal.frequencyType),
 		CreatedAt:            daoGoal.createdAt,
+		NextCheckDate:        daoGoal.nextCheckDate,
 	}
 }

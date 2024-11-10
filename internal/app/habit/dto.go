@@ -5,7 +5,6 @@ import (
 )
 
 type CreateHabitRequest struct {
-	Name        string `json:"name" example:"Drink water"`
 	Description string `json:"description" example:"Drink 2 liters of water every day"`
 	Goal        *Goal  `json:"goal,omitempty"`
 }
@@ -17,10 +16,6 @@ type Goal struct {
 }
 
 func (r *CreateHabitRequest) Validate() error {
-	if r.Name == "" {
-		return fmt.Errorf("name is required")
-	}
-
 	if r.Description == "" {
 		return fmt.Errorf("description is required")
 	}

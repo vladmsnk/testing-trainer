@@ -99,7 +99,6 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, toListUserHabitsResponse(username, habits))
 }
 
