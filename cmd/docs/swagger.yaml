@@ -38,6 +38,9 @@ definitions:
         - monthly
         example: daily
         type: string
+      id:
+        example: 1
+        type: integer
       times_per_frequency:
         description: How many times to complete within each frequency (e.g., per day
           or per week)
@@ -136,6 +139,36 @@ paths:
       tags:
       - example
   /tracker/habits:
+    get:
+      consumes:
+      - application/json
+      description: Lists all habits for the authenticated user
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of user habits
+          schema:
+            items:
+              $ref: '#/definitions/habit.ListUserHabitsResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: list user habits endpoint
+      tags:
+      - example
     post:
       consumes:
       - application/json
@@ -204,17 +237,46 @@ paths:
       summary: update habit endpoint
       tags:
       - example
-  /tracker/habits/{username}:
+  /tracker/habits/{habitId}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a habit for the authenticated user
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Habit ID
+        in: path
+        name: habitId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Habit deleted
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: delete habit endpoint
+      tags:
+      - example
+  /tracker/habits/completed:
     get:
       consumes:
       - application/json
-      description: Lists all habits for the authenticated user
+      description: Lists all completed habits for the authenticated user
       parameters:
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
       - description: Bearer
         in: header
         name: Authorization
@@ -224,7 +286,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: List of user habits
+          description: List of completed user habits
           schema:
             items:
               $ref: '#/definitions/habit.ListUserHabitsResponse'
@@ -237,7 +299,7 @@ paths:
           description: Internal Server Error
           schema:
             type: string
-      summary: list user habits endpoint
+      summary: list users completed habits endpoint
       tags:
       - example
   /tracker/progress/{habitId}:

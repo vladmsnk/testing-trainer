@@ -65,6 +65,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{"message": "User registered"})
 	return
 }
 
@@ -98,9 +99,16 @@ func (h *Handler) Login(c *gin.Context) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 			return
 		}
+		if errors.Is(err, user.ErrInvalidPassword) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": toLoginResponse(token)})
+}
+
+func (h *Handler) Logout(c *gin.Context) {
 }

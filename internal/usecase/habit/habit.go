@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"testing_trainer/internal/entities"
@@ -23,6 +24,8 @@ type UseCase interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	UpdateHabit(ctx context.Context, username string, habit entities.Habit) error
+	ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error)
+	DeleteHabit(ctx context.Context, username string, habitId int) error
 }
 
 type UserUseCase interface {
@@ -34,14 +37,17 @@ type Transactor interface {
 }
 
 type Storage interface {
+	ArchiveHabitById(ctx context.Context, habitId int) error
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
 	GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error)
 	GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
+	ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	DeactivateGoalByID(ctx context.Context, id int) error
 	CreateGoal(ctx context.Context, habitID int, goal entities.Goal) (int, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
+	UpdateHabit(ctx context.Context, habit entities.Habit) error
 }
 
 type Implementation struct {
@@ -97,6 +103,10 @@ func (i *Implementation) ListUserHabits(ctx context.Context, username string) ([
 		return nil, fmt.Errorf("i.storage.ListUserHabits: %w", err)
 	}
 
+	slices.SortFunc(userHabits, func(h1, h2 entities.Habit) int {
+		return h1.Id - h2.Id
+	})
+
 	return userHabits, nil
 }
 
@@ -117,9 +127,17 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 			}
 			return fmt.Errorf("storage.GetHabitById: %w", err)
 		}
+
+		if entities.IsHabitChanged(currentHabit, habit) {
+			err := i.storage.UpdateHabit(ctx, habit)
+			if err != nil {
+				return fmt.Errorf("storage.UpdateHabit: %w", err)
+			}
+		}
 		currentGoal := currentHabit.Goal
 
 		newGoal := habit.Goal
+		newGoal.PreviousGoalId = currentGoal.PreviousGoalId
 		if !entities.IsGoalChanged(currentGoal, newGoal) {
 			return nil
 		}
@@ -147,6 +165,62 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 		// Текущая цель перестает быть активной
 		// Создается новая запись прогресса, куда переносится вся текущая статистика
 		// Теперь привычка отслеживается по новым правилам
+		return nil
+	})
+
+	return err
+}
+
+func (i *Implementation) ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error) {
+	_, err := i.userUc.GetUserByUsername(ctx, username)
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+	}
+
+	habits, err := i.storage.ListUserCompletedHabits(ctx, username)
+	if err != nil {
+		return nil, fmt.Errorf("i.storage.ListUserCompletedHabits: %w", err)
+	}
+
+	slices.SortFunc(habits, func(h1, h2 entities.Habit) int {
+		return h1.Id - h2.Id
+	})
+
+	return habits, nil
+}
+
+func (i *Implementation) DeleteHabit(ctx context.Context, username string, habitId int) error {
+	err := i.tx.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
+		_, err := i.userUc.GetUserByUsername(ctx, username)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return ErrUserNotFound
+			}
+			return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+		}
+
+		habit, err := i.storage.GetHabitById(ctx, username, habitId)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return ErrHabitNotFound
+			}
+			return fmt.Errorf("i.storage.GetHabitById: %w", err)
+		}
+
+		err = i.storage.ArchiveHabitById(ctx, habitId)
+		if err != nil {
+			return fmt.Errorf("i.storage.ArchiveHabitById: %w", err)
+		}
+
+		if habit.Goal != nil {
+			err := i.storage.DeactivateGoalByID(ctx, habit.Goal.Id)
+			if err != nil {
+				return fmt.Errorf("i.storage.DeactivateGoalByID: %w", err)
+			}
+		}
 		return nil
 	})
 

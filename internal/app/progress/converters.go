@@ -12,9 +12,15 @@ func toHabitProgressResponse(progressWithGoal entities.ProgressWithGoal) GetHabi
 			CurrentStreak:         progressWithGoal.CurrentStreak,
 		},
 		Goal: Goal{
+			Id:                   progressWithGoal.Habit.Goal.Id,
 			FrequencyType:        progressWithGoal.FrequencyType.String(),
 			TimesPerFrequency:    progressWithGoal.TimesPerFrequency,
 			TotalTrackingPeriods: progressWithGoal.TotalTrackingPeriods,
+			IsCompleted:          progressWithGoal.IsCompleted,
+		},
+		Habit: Habit{
+			Id:          progressWithGoal.Habit.Id,
+			Description: progressWithGoal.Habit.Description,
 		},
 	}
 }
@@ -29,13 +35,14 @@ func toReminderResponse(currentProgressForAllUserHabits []entities.CurrentPeriod
 				Description: currentPeriodProgress.Habit.Description,
 			},
 			Goal: Goal{
+				Id:                   currentPeriodProgress.Habit.Goal.Id,
 				FrequencyType:        currentPeriodProgress.Habit.Goal.FrequencyType.String(),
 				TimesPerFrequency:    currentPeriodProgress.Habit.Goal.TimesPerFrequency,
 				TotalTrackingPeriods: currentPeriodProgress.Habit.Goal.TotalTrackingPeriods,
 			},
 			CurrentPeriodCompletedTimes: currentPeriodProgress.CurrentPeriodCompletedTimes,
-			NeedToCompleteTimes:         currentPeriodProgress.NeedToCompleteTimes,
-			CurrentPeriod:               currentPeriodProgress.CurrentPeriod,
+			RemainingCompletionCount:    currentPeriodProgress.NeedToCompleteTimes,
+			CurrentPeriodNumber:         currentPeriodProgress.CurrentPeriod,
 		})
 	}
 

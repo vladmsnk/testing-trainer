@@ -7,12 +7,15 @@ type AddProgressRequest struct {
 type GetHabitProgressResponse struct {
 	Goal     Goal     `json:"goal"`
 	Progress Progress `json:"progress"`
+	Habit    Habit    `json:"habit"`
 }
 
 type Goal struct {
+	Id                   int    `json:"id"`
 	FrequencyType        string `json:"frequency_type"`
 	TimesPerFrequency    int    `json:"times_per_frequency"`
 	TotalTrackingPeriods int    `json:"total_tracking_periods"`
+	IsCompleted          bool   `json:"is_completed"`
 }
 
 type Habit struct {
@@ -35,7 +38,7 @@ type GetReminderResponse struct {
 type CurrentPeriodProgress struct {
 	Habit                       Habit `json:"habit"`
 	Goal                        Goal  `json:"goal"`
-	CurrentPeriodCompletedTimes int
-	NeedToCompleteTimes         int
-	CurrentPeriod               int
+	CurrentPeriodCompletedTimes int   `json:"current_period_completed_times"`
+	RemainingCompletionCount    int   `json:"remaining_completion_count"`
+	CurrentPeriodNumber         int   `json:"current_period_number"`
 }

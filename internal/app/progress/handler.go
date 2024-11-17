@@ -2,11 +2,13 @@ package progress
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"testing_trainer/internal/entities"
+	"testing_trainer/internal/usecase/progress"
 	"testing_trainer/utils/token"
 )
 
@@ -62,6 +64,14 @@ func (h *Handler) AddProgress(c *gin.Context) {
 
 	err = h.uc.AddHabitProgress(c, username, habitId)
 	if err != nil {
+		if errors.Is(err, progress.ErrGoalCompleted) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, progress.ErrHabitNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while adding habit progress"})
 		return
 	}
@@ -103,10 +113,17 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 
 	progressWithGoal, err := h.uc.GetHabitProgress(c, username, habitId)
 	if err != nil {
+		if errors.Is(err, progress.ErrHabitNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, progress.ErrGoalNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while retrieving habit progress"})
 		return
 	}
-
 	c.JSON(http.StatusOK, toHabitProgressResponse(progressWithGoal))
 }
 

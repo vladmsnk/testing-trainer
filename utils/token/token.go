@@ -18,6 +18,11 @@ const (
 	keyEnvRefreshSecret   = "REFRESH_SECRET"
 )
 
+var (
+	ErrTokenExpired = fmt.Errorf("token has expired")
+	ErrInvalidToken = fmt.Errorf("invalid token")
+)
+
 func ExtractToken(c *gin.Context) string {
 	bearerToken := c.Request.Header.Get("Authorization")
 	if len(strings.Split(bearerToken, " ")) == 2 {
@@ -60,7 +65,7 @@ func GenerateTokens(username string) (string, string, error) {
 	accessClaims := jwt.MapClaims{
 		"authorized": true,
 		"username":   username,
-		"exp":        time.Now().Add(time.Hour * time.Duration(accessTokenLifespan)).Unix(), // Access token expiry
+		"exp":        time.Now().Add(time.Minute * time.Duration(accessTokenLifespan)).Unix(), // Access token expiry
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
@@ -118,7 +123,7 @@ func TokenValid(c *gin.Context) error {
 	}
 
 	if !token.Valid {
-		return fmt.Errorf("invalid token")
+		return ErrInvalidToken
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
@@ -129,7 +134,7 @@ func TokenValid(c *gin.Context) error {
 	if exp, ok := claims["exp"].(float64); ok {
 		expirationTime := time.Unix(int64(exp), 0)
 		if time.Now().After(expirationTime) {
-			return fmt.Errorf("token has expired")
+			return ErrTokenExpired
 		}
 	} else {
 		return fmt.Errorf("token does not have an expiration time")

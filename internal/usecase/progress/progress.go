@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"testing_trainer/internal/entities"
@@ -15,7 +16,9 @@ import (
 //go:generate mockery --dir . --name Transactor --structname MockTransactor --filename transactor_mock.go --output . --outpkg=progress
 
 var (
-	ErrHabitGoalNotFound = fmt.Errorf("habit goal not found")
+	ErrHabitNotFound = fmt.Errorf("habit not found")
+	ErrGoalNotFound  = fmt.Errorf("goal not found")
+	ErrGoalCompleted = fmt.Errorf("goal is already completed")
 )
 
 type UseCase interface {
@@ -35,6 +38,7 @@ type Transactor interface {
 type Storage interface {
 	AddHabitProgress(ctx context.Context, goalId int) error
 	GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error)
+	GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error)
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	SetGoalCompleted(ctx context.Context, goalId int) error
@@ -65,22 +69,28 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username string, 
 		return entities.ProgressWithGoal{}, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
 	}
 
-	goal, err := i.storage.GetHabitGoal(ctx, habitId)
+	habit, err := i.storage.GetHabitById(ctx, username, habitId)
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return entities.ProgressWithGoal{}, ErrHabitGoalNotFound
+			return entities.ProgressWithGoal{}, ErrHabitNotFound
 		}
-		return entities.ProgressWithGoal{}, fmt.Errorf("i.storage.GetHabitGoal: %w", err)
+		return entities.ProgressWithGoal{}, fmt.Errorf("i.storage.GetHabitById: %w", err)
 	}
 
-	progress, err := i.storage.GetCurrentProgress(ctx, goal.Id)
+	habitGoal := habit.Goal
+	if habitGoal == nil {
+		return entities.ProgressWithGoal{}, ErrGoalNotFound
+	}
+
+	progress, err := i.storage.GetCurrentProgress(ctx, habitGoal.Id)
 	if err != nil {
 		return entities.ProgressWithGoal{}, fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
 	}
 
 	return entities.ProgressWithGoal{
 		Progress: progress,
-		Goal:     goal,
+		Goal:     *habitGoal,
+		Habit:    habit,
 	}, nil
 }
 
@@ -94,9 +104,13 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 		goal, err := i.storage.GetHabitGoal(ctx, habitId)
 		if err != nil {
 			if errors.Is(err, storage.ErrNotFound) {
-				return ErrHabitGoalNotFound
+				return ErrHabitNotFound
 			}
 			return fmt.Errorf("i.storage.GetHabitGoal: %w", err)
+		}
+
+		if goal.IsCompleted {
+			return ErrGoalCompleted
 		}
 
 		currentProgress, err := i.storage.GetCurrentProgress(ctx, goal.Id)
@@ -196,6 +210,10 @@ func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context,
 
 		result = append(result, currentPeriodProgress)
 	}
+
+	slices.SortFunc(result, func(a, b entities.CurrentPeriodProgress) int {
+		return a.Habit.Id - b.Habit.Id
+	})
 
 	return result, nil
 }

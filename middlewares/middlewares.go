@@ -11,7 +11,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := token.TokenValid(c)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "Unauthorized")
+			c.String(http.StatusUnauthorized, err.Error())
 			c.Abort()
 			return
 		}

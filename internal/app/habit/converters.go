@@ -71,6 +71,7 @@ func toResponseHabit(habit entities.Habit) ResponseHabit {
 	}
 	if habit.Goal != nil {
 		r.Goal = &Goal{
+			Id:                   habit.Goal.Id,
 			FrequencyType:        habit.Goal.FrequencyType.String(),
 			TimesPerFrequency:    habit.Goal.TimesPerFrequency,
 			TotalTrackingPeriods: habit.Goal.TotalTrackingPeriods,

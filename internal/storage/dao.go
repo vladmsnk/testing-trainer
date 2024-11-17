@@ -15,6 +15,7 @@ type habit struct {
 	totalTrackingPeriods sql.Null[int]       `db:"total_tracking_periods"`
 	nextCheckDate        sql.Null[time.Time] `db:"next_check_date"`
 	createdAt            sql.Null[time.Time] `db:"created_at"`
+	previousGoalId       sql.Null[int]       `db:"previous_goal_id"`
 }
 
 type goal struct {
@@ -24,4 +25,7 @@ type goal struct {
 	totalTrackingPeriods int       `db:"total_tracking_periods"`
 	createdAt            time.Time `db:"created_at"`
 	nextCheckDate        time.Time `db:"next_check_date"`
+	isCompleted          bool      `db:"is_completed"`
+	isActive             bool      `db:"is_active"`
+	previousGoalId       int       `db:"previous_goal_id"`
 }

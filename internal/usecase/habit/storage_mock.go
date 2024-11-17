@@ -14,6 +14,24 @@ type MockStorage struct {
 	mock.Mock
 }
 
+// ArchiveHabitById provides a mock function with given fields: ctx, habitId
+func (_m *MockStorage) ArchiveHabitById(ctx context.Context, habitId int) error {
+	ret := _m.Called(ctx, habitId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveHabitById")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int) error); ok {
+		r0 = rf(ctx, habitId)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // CreateGoal provides a mock function with given fields: ctx, habitID, goal
 func (_m *MockStorage) CreateGoal(ctx context.Context, habitID int, goal entities.Goal) (int, error) {
 	ret := _m.Called(ctx, habitID, goal)
@@ -172,6 +190,36 @@ func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId int) (entities.
 	return r0, r1
 }
 
+// ListUserCompletedHabits provides a mock function with given fields: ctx, username
+func (_m *MockStorage) ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error) {
+	ret := _m.Called(ctx, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListUserCompletedHabits")
+	}
+
+	var r0 []entities.Habit
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]entities.Habit, error)); ok {
+		return rf(ctx, username)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []entities.Habit); ok {
+		r0 = rf(ctx, username)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entities.Habit)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // ListUserHabits provides a mock function with given fields: ctx, username
 func (_m *MockStorage) ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error) {
 	ret := _m.Called(ctx, username)
@@ -213,6 +261,24 @@ func (_m *MockStorage) UpdateGoalStat(ctx context.Context, goalId int, progress 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, int, entities.Progress) error); ok {
 		r0 = rf(ctx, goalId, progress)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdateHabit provides a mock function with given fields: ctx, _a1
+func (_m *MockStorage) UpdateHabit(ctx context.Context, _a1 entities.Habit) error {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateHabit")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Habit) error); ok {
+		r0 = rf(ctx, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}

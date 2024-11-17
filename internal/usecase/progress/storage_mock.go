@@ -150,6 +150,34 @@ func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (enti
 	return r0, r1
 }
 
+// GetHabitById provides a mock function with given fields: ctx, username, habitId
+func (_m *MockStorage) GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error) {
+	ret := _m.Called(ctx, username, habitId)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetHabitById")
+	}
+
+	var r0 entities.Habit
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int) (entities.Habit, error)); ok {
+		return rf(ctx, username, habitId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int) entities.Habit); ok {
+		r0 = rf(ctx, username, habitId)
+	} else {
+		r0 = ret.Get(0).(entities.Habit)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int) error); ok {
+		r1 = rf(ctx, username, habitId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // GetHabitGoal provides a mock function with given fields: ctx, habitId
 func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error) {
 	ret := _m.Called(ctx, habitId)

@@ -96,6 +96,51 @@ const docTemplate = `{
             }
         },
         "/tracker/habits": {
+            "get": {
+                "description": "Lists all habits for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "list user habits endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of user habits",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/habit.ListUserHabitsResponse"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "put": {
                 "description": "Updates a habit for the authenticated user",
                 "consumes": [
@@ -199,9 +244,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/tracker/habits/{username}": {
+        "/tracker/habits/completed": {
             "get": {
-                "description": "Lists all habits for the authenticated user",
+                "description": "Lists all completed habits for the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -211,15 +256,8 @@ const docTemplate = `{
                 "tags": [
                     "example"
                 ],
-                "summary": "list user habits endpoint",
+                "summary": "list users completed habits endpoint",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Username",
-                        "name": "username",
-                        "in": "path",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Bearer",
@@ -230,7 +268,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of user habits",
+                        "description": "List of completed user habits",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -246,6 +284,57 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/tracker/habits/{habitId}": {
+            "delete": {
+                "description": "Deletes a habit for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "example"
+                ],
+                "summary": "delete habit endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Habit ID",
+                        "name": "habitId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Habit deleted",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "type": "string"
                         }
@@ -473,6 +562,10 @@ const docTemplate = `{
                         "monthly"
                     ],
                     "example": "daily"
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
                 },
                 "times_per_frequency": {
                     "description": "How many times to complete within each frequency (e.g., per day or per week)",

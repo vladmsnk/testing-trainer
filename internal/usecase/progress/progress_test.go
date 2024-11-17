@@ -32,6 +32,13 @@ func TestGetHabitProgress(t *testing.T) {
 			TotalTrackingPeriods: 30,
 		}
 
+		habit = entities.Habit{
+			Id:          1,
+			Goal:        &goal,
+			Name:        "habit1",
+			Description: "habit1",
+		}
+
 		progress = entities.Progress{
 			TotalCompletedPeriods: 10,
 			TotalSkippedPeriods:   0,
@@ -43,6 +50,7 @@ func TestGetHabitProgress(t *testing.T) {
 		expectedResult = entities.ProgressWithGoal{
 			Progress: progress,
 			Goal:     goal,
+			Habit:    habit,
 		}
 	)
 
@@ -52,7 +60,7 @@ func TestGetHabitProgress(t *testing.T) {
 		mockStorage, mockUserUc, mockTx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
-		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
+		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
 		mockStorage.On("GetCurrentProgress", ctx, 1).Return(progress, nil)
 
 		progressUC := New(mockUserUc, mockStorage, mockTx)
@@ -82,12 +90,12 @@ func TestGetHabitProgress(t *testing.T) {
 		mockStorage, mockUserUc, mockTx := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
-		mockStorage.On("GetHabitGoal", ctx, habitId).Return(entities.Goal{}, storage.ErrNotFound)
+		mockStorage.On("GetHabitById", ctx, username, habitId).Return(entities.Habit{}, storage.ErrNotFound)
 
 		progressUC := New(mockUserUc, mockStorage, mockTx)
 
 		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
-		require.ErrorIs(t, err, ErrHabitGoalNotFound)
+		require.ErrorIs(t, err, ErrHabitNotFound)
 		require.Zero(t, habitProgress)
 	})
 }
@@ -376,6 +384,29 @@ func TestAddHabitProgress(t *testing.T) {
 		progressUC := New(mockUserUc, mockStorage, mockTransactor)
 		err := progressUC.AddHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
+	})
+
+	t.Run("err goal is completed", func(t *testing.T) {
+		completedGoal := entities.Goal{
+			Id:                   1,
+			FrequencyType:        entities.Daily,
+			TimesPerFrequency:    2,
+			TotalTrackingPeriods: 30,
+			IsCompleted:          true,
+		}
+
+		mockStorage, mockUserUc, mockTransactor := initFunc(t)
+
+		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(ErrGoalCompleted).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
+
+		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
+		mockStorage.On("GetHabitGoal", ctx, habitId).Return(completedGoal, nil)
+		progressUC := New(mockUserUc, mockStorage, mockTransactor)
+		err := progressUC.AddHabitProgress(ctx, username, habitId)
+		require.ErrorIs(t, err, ErrGoalCompleted)
 	})
 }
 

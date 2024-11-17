@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"testing_trainer/internal/entities"
 	"testing_trainer/internal/storage"
 	utils "testing_trainer/utils/password"
@@ -13,6 +14,7 @@ import (
 var (
 	ErrUserNotFound      = fmt.Errorf("user not found")
 	ErrUserAlreadyExists = fmt.Errorf("user already exists")
+	ErrInvalidPassword   = fmt.Errorf("invalid password")
 )
 
 type UseCase interface {
@@ -79,7 +81,7 @@ func (i *Implementation) Login(ctx context.Context, user entities.User) (entitie
 
 	err = utils.CheckPassword(userFromStorage.Password, user.Password)
 	if err != nil {
-		return entities.Token{}, fmt.Errorf("password.CheckPasswordHash: %w", err)
+		return entities.Token{}, ErrInvalidPassword
 	}
 
 	accessToken, refreshToken, err := token.GenerateTokens(userFromStorage.Name)

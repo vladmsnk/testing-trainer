@@ -18,6 +18,15 @@ type Goal struct {
 	IsActive             bool
 	CreatedAt            time.Time
 	NextCheckDate        time.Time
+	IsCompleted          bool
+	PreviousGoalId       int
+}
+
+func IsHabitChanged(old, new Habit) bool {
+	if old.Description != new.Description {
+		return true
+	}
+	return false
 }
 
 func IsGoalChanged(old, new *Goal) bool {
@@ -29,11 +38,24 @@ func IsGoalChanged(old, new *Goal) bool {
 		return true
 	}
 
-	if *old != *new {
+	if !GoalsEqual(*old, *new) {
 		return true
 	}
 
 	return false
+}
+
+func GoalsEqual(old, new Goal) bool {
+	if old.FrequencyType != new.FrequencyType {
+		return false
+	}
+	if old.TimesPerFrequency != new.TimesPerFrequency {
+		return false
+	}
+	if old.TotalTrackingPeriods != new.TotalTrackingPeriods {
+		return false
+	}
+	return true
 }
 
 type FrequencyType int64

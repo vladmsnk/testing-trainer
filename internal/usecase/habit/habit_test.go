@@ -127,7 +127,7 @@ func TestUpdateHabit(t *testing.T) {
 		}
 		newHabit = entities.Habit{
 			Id:          habitId,
-			Description: "Drink water",
+			Description: "Drink juice",
 			Goal:        &newGoal,
 		}
 	)
@@ -145,6 +145,8 @@ func TestUpdateHabit(t *testing.T) {
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
 
 		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
+		mockStorage.On("UpdateHabit", ctx, newHabit).Return(nil)
+
 		mockStorage.On("DeactivateGoalByID", ctx, goal.Id).Return(nil)
 		mockStorage.On("CreateGoal", ctx, habitId, newGoal).Return(newGoal.Id, nil)
 		mockStorage.On("GetCurrentProgress", ctx, goal.Id).Return(currentProgress, nil)
@@ -154,4 +156,43 @@ func TestUpdateHabit(t *testing.T) {
 		err := habituc.UpdateHabit(ctx, username, newHabit)
 		require.Nil(t, err)
 	})
+
+}
+
+func TestDeleteHabit(t *testing.T) {
+	initFunc := func(t *testing.T) (*MockStorage, *MockUserUseCase, *MockTransactor) {
+		mockStorage := NewMockStorage(t)
+		mockUserUc := NewMockUserUseCase(t)
+		mockTransactor := NewMockTransactor(t)
+
+		return mockStorage, mockUserUc, mockTransactor
+	}
+
+	var (
+		ctx      = context.Background()
+		username = "username"
+		habitId  = 1
+
+		goal  = entities.Goal{Id: 1, FrequencyType: entities.Daily, TimesPerFrequency: 2, TotalTrackingPeriods: 30, IsActive: true}
+		habit = entities.Habit{Id: habitId, Description: "Drink water", Goal: &goal}
+	)
+
+	t.Run("success", func(t *testing.T) {
+		mockStorage, mockUserUc, tx := initFunc(t)
+
+		tx.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+			fx := args.Get(1).(func(ctxTX context.Context) error)
+			_ = fx(ctx)
+		})
+		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{Name: username}, nil)
+
+		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
+		mockStorage.On("ArchiveHabitById", ctx, habitId).Return(nil)
+		mockStorage.On("DeactivateGoalByID", ctx, goal.Id).Return(nil)
+
+		habituc := New(mockStorage, mockUserUc, tx)
+		err := habituc.DeleteHabit(ctx, username, habitId)
+		require.Nil(t, err)
+	})
+
 }
