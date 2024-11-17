@@ -96,11 +96,11 @@ func (h *Handler) Login(c *gin.Context) {
 	token, err := h.uc.Login(c, toEntityUser(req))
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 		if errors.Is(err, user.ErrInvalidPassword) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
