@@ -8,6 +8,17 @@ definitions:
         example: john_doe
         type: string
     type: object
+  auth.LogoutRequest:
+    properties:
+      access_token:
+        type: string
+    type: object
+  auth.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        example: refresh_token
+        type: string
+    type: object
   auth.RegisterRequest:
     properties:
       email:
@@ -110,6 +121,58 @@ paths:
           schema:
             type: string
       summary: login endpoint
+      tags:
+      - example
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logs out users from the system
+      parameters:
+      - description: Logout
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/auth.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: logout endpoint
+      tags:
+      - example
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refreshes the authentication token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: requestBody
+        required: true
+        schema:
+          $ref: '#/definitions/auth.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: New JWT Token
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: refresh token endpoint
       tags:
       - example
   /auth/register:

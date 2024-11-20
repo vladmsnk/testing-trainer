@@ -23,3 +23,10 @@ func toLoginResponse(token entities.Token) LoginResponse {
 		RefreshToken: token.RefreshToken,
 	}
 }
+
+func toRefreshResponse(token entities.Token) RefreshTokenResponse {
+	return RefreshTokenResponse{
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+	}
+}

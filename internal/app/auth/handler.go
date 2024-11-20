@@ -17,6 +17,8 @@ type Handler struct {
 type UseCase interface {
 	RegisterUser(ctx context.Context, user entities.RegisterUser) error
 	Login(ctx context.Context, user entities.User) (entities.Token, error)
+	Logout(ctx context.Context, token entities.Token) error
+	RefreshToken(ctx context.Context, tkn entities.Token) (entities.Token, error)
 }
 
 func NewAuthHandler(r *gin.RouterGroup, uc UseCase) {
@@ -26,6 +28,8 @@ func NewAuthHandler(r *gin.RouterGroup, uc UseCase) {
 
 	r.POST("/register", h.Register)
 	r.POST("/login", h.Login)
+	r.POST("/logout", h.Logout)
+	r.POST("/refresh", h.RefreshToken)
 }
 
 // Register godoc
@@ -110,5 +114,68 @@ func (h *Handler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"token": toLoginResponse(token)})
 }
 
+// Logout godoc
+// @Summary logout endpoint
+// @Schemes
+// @Description Logs out users from the system
+// @Tags example
+// @Accept json
+// @Produce json
+// @Param requestBody body LogoutRequest true "Logout"
+// @Success 200 {string} ok
+// @Failure 401 {string} string "Unauthorized"
+// @Router /auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
+	var req LogoutRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.uc.Logout(c, entities.Token{AccessToken: req.AccessToken})
+	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) || errors.Is(err, user.ErrTokenNotFound) || errors.Is(err, user.ErrInvalidToken) {
+			c.JSON(http.StatusOK, gin.H{"message": "User logged out"})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User logged out"})
+	return
+}
+
+// RefreshToken godoc
+// @Summary refresh token endpoint
+// @Schemes
+// @Description Refreshes the authentication token
+// @Tags example
+// @Accept json
+// @Produce json
+// @Param requestBody body RefreshTokenRequest true "Refresh token"
+// @Success 200 {string} token "New JWT Token"
+// @Failure 401 {string} string "Unauthorized"
+// @Router /auth/refresh [post]
+func (h *Handler) RefreshToken(c *gin.Context) {
+	var req RefreshTokenRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, err := h.uc.RefreshToken(c, entities.Token{RefreshToken: req.RefreshToken})
+	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"token": toRefreshResponse(token)})
 }
