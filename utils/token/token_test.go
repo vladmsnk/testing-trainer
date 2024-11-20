@@ -17,7 +17,7 @@ func TestTokenValid(t *testing.T) {
 		testSecret = "testSecret"
 	)
 
-	os.Setenv(keyEnvApiSecret, testSecret)
+	os.Setenv(KeyEnvApiSecret, testSecret)
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(nil)
 
@@ -35,7 +35,7 @@ func TestTokenValid(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+tokenString)
 		c.Request = req
 
-		err = TokenValid(c)
+		err = TokenValidInContext(c)
 		assert.NoError(t, err, "Valid token should pass validation")
 	})
 
@@ -53,7 +53,7 @@ func TestTokenValid(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+tokenString)
 		c.Request = req
 
-		err = TokenValid(c)
+		err = TokenValidInContext(c)
 		assert.Error(t, err, "Invalid secret should fail validation")
 	})
 
@@ -71,7 +71,7 @@ func TestTokenValid(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+tokenString)
 		c.Request = req
 
-		err = TokenValid(c)
+		err = TokenValidInContext(c)
 		assert.Error(t, err, "Expired token should fail validation")
 	})
 }
@@ -82,7 +82,7 @@ func TestGenerateTokenByUsername(t *testing.T) {
 		testSecret = "testSecret"
 	)
 
-	os.Setenv(keyEnvApiSecret, testSecret)
+	os.Setenv(KeyEnvApiSecret, testSecret)
 	os.Setenv(keyEnvTokenLifeSpan, "1")
 	gin.SetMode(gin.TestMode)
 
@@ -104,7 +104,7 @@ func TestGenerateTokenByUsername(t *testing.T) {
 }
 
 func TestExtractUsernameFromToken(t *testing.T) {
-	os.Setenv(keyEnvApiSecret, "testsecret")
+	os.Setenv(KeyEnvApiSecret, "testsecret")
 
 	gin.SetMode(gin.TestMode)
 	c, _ := gin.CreateTestContext(nil)

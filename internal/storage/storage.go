@@ -533,3 +533,51 @@ update habits set description = $1 where id = $2;
 
 	return nil
 }
+
+func (s *Storage) AddToken(ctx context.Context, token entities.Token) error {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+insert into tokens (access_token, refresh_token, username, expires_at) 
+values ($1, $2, $3, $4) on conflict (username) do update set access_token = $1, refresh_token = $2, expires_at = $4;
+`
+
+	_, err := pool.Exec(ctx, query, token.AccessToken, token.RefreshToken, token.Username, token.ExpiresAt)
+	if err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteTokenByUsername(ctx context.Context, username string) error {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+delete from tokens where username = $1;
+	`
+
+	_, err := pool.Exec(ctx, query, username)
+	if err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+	return nil
+}
+
+func (s *Storage) GetTokenByUsername(ctx context.Context, username string) (entities.Token, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+select access_token, refresh_token, username, expires_at from tokens where username = $1;
+`
+	var token entities.Token
+
+	err := pool.QueryRow(ctx, query, username).Scan(&token.AccessToken, &token.RefreshToken, &token.Username, &token.ExpiresAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.Token{}, ErrNotFound
+		}
+		return entities.Token{}, fmt.Errorf("db.QueryRow: %w", err)
+	}
+	return token, nil
+}

@@ -31,7 +31,7 @@ func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress
 	auth.NewAuthHandler(authHandlers, userUc)
 
 	protectedHabitHandlers := r.Group("/api/v1/tracker")
-	protectedHabitHandlers.Use(middlewares.AuthMiddleware())
+	protectedHabitHandlers.Use(middlewares.AuthMiddleware(userUc))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	habit.NewHabitHandler(protectedHabitHandlers, habitUc)

@@ -14,8 +14,8 @@ import (
 const (
 	keyEnvTokenLifeSpan   = "TOKEN_HOUR_LIFESPAN"
 	keyEnvRefreshLifeSpan = "REFRESH_HOUR_LIFESPAN"
-	keyEnvApiSecret       = "API_SECRET"
-	keyEnvRefreshSecret   = "REFRESH_SECRET"
+	KeyEnvApiSecret       = "API_SECRET"
+	KeyEnvRefreshSecret   = "REFRESH_SECRET"
 )
 
 var (
@@ -34,20 +34,11 @@ func ExtractToken(c *gin.Context) string {
 func ExtractUsernameFromToken(c *gin.Context) (string, error) {
 	tokenString := ExtractToken(c)
 
-	claims := jwt.MapClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv(keyEnvApiSecret)), nil
-	})
+	username, err := ExtractUserNameFromToken(tokenString, KeyEnvApiSecret)
 	if err != nil {
-		return "", fmt.Errorf("failed to parse token: %w", err)
+		return "", fmt.Errorf("failed to extract username from token: %w", err)
 	}
-	if !token.Valid {
-		return "", fmt.Errorf("invalid token")
-	}
-	username, ok := claims["username"].(string)
-	if !ok {
-		return "", fmt.Errorf("username claim is missing or not a string")
-	}
+
 	return username, nil
 }
 
@@ -65,11 +56,11 @@ func GenerateTokens(username string) (string, string, error) {
 	accessClaims := jwt.MapClaims{
 		"authorized": true,
 		"username":   username,
-		"exp":        time.Now().Add(time.Minute * time.Duration(accessTokenLifespan)).Unix(), // Access token expiry
+		"exp":        time.Now().Add(time.Hour * time.Duration(accessTokenLifespan)).Unix(), // Access token expiry
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
-	apiSecret := os.Getenv(keyEnvApiSecret)
+	apiSecret := os.Getenv(KeyEnvApiSecret)
 	if apiSecret == "" {
 		return "", "", fmt.Errorf("API_SECRET environment variable not set")
 	}
@@ -96,7 +87,7 @@ func GenerateTokens(username string) (string, string, error) {
 	}
 
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
-	refreshSecret := os.Getenv(keyEnvRefreshSecret)
+	refreshSecret := os.Getenv(KeyEnvRefreshSecret)
 	if refreshSecret == "" {
 		return "", "", fmt.Errorf("REFRESH_SECRET environment variable not set")
 	}
@@ -109,17 +100,47 @@ func GenerateTokens(username string) (string, string, error) {
 	return accessTokenString, refreshTokenString, nil
 }
 
-func TokenValid(c *gin.Context) error {
+func TokenValidInContext(c *gin.Context) error {
 	tokenString := ExtractToken(c)
+
+	err := ValidateToken(tokenString, KeyEnvApiSecret)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func ExtractUserNameFromToken(tokenString string, keyEnvSecret string) (string, error) {
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv(keyEnvSecret)), nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to parse token: %w", err)
+	}
+	if !token.Valid {
+		return "", fmt.Errorf("invalid token")
+	}
+	username, ok := claims["username"].(string)
+	if !ok {
+		return "", fmt.Errorf("username claim is missing or not a string")
+	}
+	return username, nil
+}
+
+func ValidateToken(tokenString string, keyEnvSecret string) error {
+	envSecret := os.Getenv(keyEnvSecret)
+
+	secret := []byte(envSecret)
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(os.Getenv(keyEnvApiSecret)), nil
+		return secret, nil
 	})
 	if err != nil {
-		return fmt.Errorf("invalid token: %w", err)
+		return ErrInvalidToken
 	}
 
 	if !token.Valid {
