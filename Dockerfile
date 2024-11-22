@@ -14,6 +14,7 @@ FROM scratch as final
 WORKDIR /
 COPY --from=build /bin/app /app
 COPY etc/config.yaml /etc/config.yaml
+COPY etc/config.env /etc/config.env
 
 EXPOSE 7001
 
