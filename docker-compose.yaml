@@ -49,9 +49,6 @@ services:
     ports:
       - 7001:7001
     command: ./app
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - net
 volumes:
