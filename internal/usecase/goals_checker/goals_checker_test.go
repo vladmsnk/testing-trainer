@@ -19,6 +19,7 @@ func TestCheckGoals(t *testing.T) {
 		IsActive:             true,
 		CreatedAt:            time.Now().UTC().AddDate(0, 0, -7),
 		NextCheckDate:        time.Now().UTC().Add(-time.Hour),
+		StartTrackingAt:      time.Now().UTC().AddDate(0, 0, -7),
 	},
 	}
 
@@ -63,7 +64,7 @@ func TestCheckGoals(t *testing.T) {
 
 		mockStorage.On("GetCurrentProgress", ctx, goalsToCheck[0].Id).Return(progress, nil)
 
-		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0].Id, goalsToCheck[0].FrequencyType, goalsToCheck[0].CreatedAt, 1).Return(2, nil)
+		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0]).Return(2, nil)
 
 		mockStorage.On("UpdateGoalStat", ctx, goalsToCheck[0].Id, progressToUpdate).Return(nil)
 
@@ -96,7 +97,7 @@ func TestCheckGoals(t *testing.T) {
 
 		mockStorage.On("GetCurrentProgress", ctx, goalsToCheck[0].Id).Return(progress, nil)
 
-		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0].Id, goalsToCheck[0].FrequencyType, goalsToCheck[0].CreatedAt, 1).Return(3, nil)
+		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0]).Return(3, nil)
 
 		mockStorage.On("SetGoalNextCheckDate", ctx, goalsToCheck[0].Id, nextCheckDate).Return(nil)
 

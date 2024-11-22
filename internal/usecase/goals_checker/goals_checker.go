@@ -20,7 +20,7 @@ type Storage interface {
 	SetGoalNextCheckDate(ctx context.Context, goalId int, nextCheckDate time.Time) error
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
-	GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
+	GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error)
 }
 
 type Transactor interface {
@@ -53,9 +53,8 @@ func (i *Implementation) CheckGoals(ctx context.Context) error {
 			}
 
 			updatedProgress := progress
-			currentPeriod := goal.GetCurrentPeriod()
 
-			lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentPeriod)
+			lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal)
 			if err != nil {
 				return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
 			}

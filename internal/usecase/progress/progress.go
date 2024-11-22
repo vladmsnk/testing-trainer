@@ -42,9 +42,8 @@ type Storage interface {
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	SetGoalCompleted(ctx context.Context, goalId int) error
-	GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
-	GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error)
-	GetAllGoalsNeedCheck(ctx context.Context) ([]entities.Goal, error)
+	GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error)
+	GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error)
 	SetGoalNextCheckDate(ctx context.Context, goalId int, nextCheckDate time.Time) error
 	GetAllUserHabitsWithGoals(ctx context.Context, username string) ([]entities.Habit, error)
 }
@@ -118,14 +117,12 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 			return fmt.Errorf("i.storage.GetCurrentProgress: %w", err)
 		}
 
-		currentPeriod := goal.GetCurrentPeriod()
-
-		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentPeriod)
+		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal)
 		if err != nil {
 			return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
 		}
 
-		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal.Id, goal.FrequencyType, goal.CreatedAt, currentPeriod)
+		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal)
 		if err != nil {
 			return fmt.Errorf("i.storage.GetTodayExecutionCount: %w", err)
 		}
@@ -193,7 +190,7 @@ func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context,
 	for _, habit := range userHabits {
 		var currentPeriodProgress entities.CurrentPeriodProgress
 
-		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, habit.Goal.Id, habit.Goal.FrequencyType, habit.Goal.CreatedAt, habit.Goal.GetCurrentPeriod())
+		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, *habit.Goal)
 		if err != nil {
 			return nil, fmt.Errorf("i.storage.GetCurrentPeriodExecutionCount: %w", err)
 		}

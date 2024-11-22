@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/lib/pq"
 	"testing_trainer/internal/entities"
 	"testing_trainer/internal/storage/transactor"
 )
@@ -78,14 +79,14 @@ func (s *Storage) CreateGoal(ctx context.Context, habitID int, goal entities.Goa
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-INSERT INTO goals (habit_id, frequency_type, times_per_frequency, total_tracking_periods, is_active, next_check_date, previous_goal_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO goals (habit_id, frequency_type, times_per_frequency, total_tracking_periods, is_active, next_check_date, previous_goal_id, start_tracking_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 RETURNING id;
 `
 
 	var goalId int
 
-	err := pool.QueryRow(ctx, query, habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, true, goal.NextCheckDate, goal.PreviousGoalId).Scan(&goalId)
+	err := pool.QueryRow(ctx, query, habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, true, goal.NextCheckDate, goal.PreviousGoalIDs, goal.StartTrackingAt).Scan(&goalId)
 	if err != nil {
 		return 0, fmt.Errorf("tx.Exec habit_id=%d frequency_type=%s times_per_frequency=%d total_tracking_periods=%d: %w", habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, err)
 	}
@@ -159,7 +160,7 @@ select
 	g.next_check_date as next_check_date
 from habits h 
     join goals g on h.id = g.habit_id and g.is_completed = true
-where h.username = $1 and h.is_archived = false;
+where h.username = $1;
 `
 	rows, err := pool.Query(ctx, query, username)
 	if err != nil {
@@ -232,7 +233,9 @@ select
     g.times_per_frequency as times_per_frequency,
     g.total_tracking_periods as total_tracking_periods,
     g.next_check_date as next_check_date,
-    g.previous_goal_id as previous_goal_id
+    g.is_completed as is_completed,
+    g.previous_goal_id as previous_goal_id,
+    g.start_tracking_at as start_tracking_at
 from habits h 
     left join goals g on h.id = g.habit_id and g.is_active = true
 where h.username = $1 
@@ -240,7 +243,7 @@ where h.username = $1
 
 	var daoHabit habit
 
-	err := pool.QueryRow(ctx, query, username, habitId).Scan(&daoHabit.id, &daoHabit.description, &daoHabit.goalId, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods, &daoHabit.nextCheckDate, &daoHabit.previousGoalId)
+	err := pool.QueryRow(ctx, query, username, habitId).Scan(&daoHabit.id, &daoHabit.description, &daoHabit.goalId, &daoHabit.frequencyType, &daoHabit.timesPerFrequency, &daoHabit.totalTrackingPeriods, &daoHabit.nextCheckDate, &daoHabit.isCompleted, &daoHabit.previousGoalIDs, &daoHabit.startTrackingAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Habit{}, ErrNotFound
@@ -255,11 +258,25 @@ func (s *Storage) GetHabitGoal(ctx context.Context, habitId int) (entities.Goal,
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-select id, frequency_type, times_per_frequency, total_tracking_periods, created_at, next_check_date, is_completed, is_active, previous_goal_id from goals where habit_id = $1 and is_active = true ;
-	`
-	var daoGoal goal
+select id, 
+       frequency_type, 
+       times_per_frequency, 
+       total_tracking_periods, 
+       created_at,
+       next_check_date, 
+       is_completed,
+       is_active, 
+       previous_goal_id, 
+       start_tracking_at 
+from goals 
+where habit_id = $1 
+  and is_active = true ;
+`
+	var (
+		daoGoal goal
+	)
 
-	err := pool.QueryRow(ctx, query, habitId).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods, &daoGoal.createdAt, &daoGoal.nextCheckDate, &daoGoal.isCompleted, &daoGoal.isActive, &daoGoal.previousGoalId)
+	err := pool.QueryRow(ctx, query, habitId).Scan(&daoGoal.id, &daoGoal.frequencyType, &daoGoal.timesPerFrequency, &daoGoal.totalTrackingPeriods, &daoGoal.createdAt, &daoGoal.nextCheckDate, &daoGoal.isCompleted, &daoGoal.isActive, &daoGoal.previousGoalIDs, &daoGoal.startTrackingAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.Goal{}, ErrNotFound
@@ -357,19 +374,57 @@ func (s *Storage) getExecutionCountForPeriod(ctx context.Context, goalId int, st
 	return count, nil
 }
 
-func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error) {
+func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error) {
 	// The first period has no previous period
-	if currentPeriod == 0 {
+	if goal.GetCurrentPeriod() == 0 {
 		return 0, nil
 	}
 
-	start, end := calculatePeriodRange(createdAt, frequencyType, currentPeriod-1)
-	return s.getExecutionCountForPeriod(ctx, goalId, start, end)
+	start, end := calculatePeriodRange(goal.StartTrackingAt, goal.FrequencyType, goal.GetCurrentPeriod()-1)
+
+	var executionCountForPreviousPeriod int
+
+	currentGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, goal.Id, start, end)
+	if err != nil {
+		return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
+	}
+	executionCountForPreviousPeriod += currentGoalExecutionCount
+	for _, previousGoalID := range goal.PreviousGoalIDs {
+		specificGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, previousGoalID, start, end)
+		if err != nil {
+			return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
+		}
+
+		executionCountForPreviousPeriod += specificGoalExecutionCount
+	}
+
+	return executionCountForPreviousPeriod, nil
 }
 
-func (s *Storage) GetCurrentPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error) {
-	start, end := calculatePeriodRange(createdAt, frequencyType, currentPeriod)
-	return s.getExecutionCountForPeriod(ctx, goalId, start, end)
+func (s *Storage) GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error) {
+	start, end := calculatePeriodRange(goal.StartTrackingAt, goal.FrequencyType, goal.GetCurrentPeriod())
+
+	var executionCountForCurrentPeriod int
+
+	// Получаем количество выполнений текущей цели за текущий период
+	currentGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, goal.Id, start, end)
+	if err != nil {
+		return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
+	}
+	executionCountForCurrentPeriod += currentGoalExecutionCount
+
+	// Получаем количество выполнений предыдущих целей за текущий период
+	for _, previousGoalID := range goal.PreviousGoalIDs {
+		specificGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, previousGoalID, start, end)
+		if err != nil {
+			return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
+		}
+
+		executionCountForCurrentPeriod += specificGoalExecutionCount
+	}
+
+	// В итоге получается общее количество выполнений целей за текущий период по всем целям, которые были активны
+	return executionCountForCurrentPeriod, nil
 }
 
 func (s *Storage) GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error) {
@@ -395,7 +450,8 @@ func (s *Storage) SetGoalCompleted(ctx context.Context, goalId int) error {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-update goals set is_completed = true where id = $1;
+update goals 
+set is_completed = true where id = $1;
 `
 	_, err := pool.Exec(ctx, query, goalId)
 	if err != nil {
@@ -467,6 +523,8 @@ select
     g.total_tracking_periods, 
     g.next_check_date,
     g.created_at,
+    g.previous_goal_id,
+    g.start_tracking_at,
     h.id as habit_id, 
     h.description as habit_description
 from 
@@ -490,7 +548,7 @@ where
 
 	for rows.Next() {
 		var h habit
-		err := rows.Scan(&h.goalId, &h.frequencyType, &h.timesPerFrequency, &h.totalTrackingPeriods, &h.nextCheckDate, &h.createdAt, &h.id, &h.description)
+		err := rows.Scan(&h.goalId, &h.frequencyType, &h.timesPerFrequency, &h.totalTrackingPeriods, &h.nextCheckDate, &h.createdAt, &h.previousGoalIDs, &h.startTrackingAt, &h.id, &h.description)
 		if err != nil {
 			return nil, fmt.Errorf("rows.Scan: %w", err)
 		}

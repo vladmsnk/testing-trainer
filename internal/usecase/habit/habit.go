@@ -48,6 +48,7 @@ type Storage interface {
 	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateHabit(ctx context.Context, habit entities.Habit) error
+	GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error)
 }
 
 type Implementation struct {
@@ -137,25 +138,54 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 		currentGoal := currentHabit.Goal
 
 		newGoal := habit.Goal
-		newGoal.PreviousGoalId = currentGoal.PreviousGoalId
 		if !entities.IsGoalChanged(currentGoal, newGoal) {
 			return nil
 		}
 		newGoal.NextCheckDate = currentGoal.NextCheckDate
+		newGoal.StartTrackingAt = currentGoal.StartTrackingAt
 
 		err = i.storage.DeactivateGoalByID(ctx, currentGoal.Id)
 		if err != nil {
 			return fmt.Errorf("storage.DeactivateGoalByID: %w", err)
 		}
+		var previousGoals []int
+
+		if currentGoal.PreviousGoalIDs != nil {
+			previousGoals = append(currentGoal.PreviousGoalIDs, currentGoal.Id)
+		} else {
+			previousGoals = []int{currentGoal.Id}
+		}
+
+		newGoal.PreviousGoalIDs = previousGoals
 
 		newGoalId, err := i.storage.CreateGoal(ctx, habit.Id, *newGoal)
 		if err != nil {
 			return fmt.Errorf("storage.CreateGoal: %w", err)
 		}
 
+		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, *currentGoal)
+		if err != nil {
+			return fmt.Errorf("storage.GetCurrentPeriodExecutionCount: %w", err)
+		}
+
 		currentProgress, err := i.storage.GetCurrentProgress(ctx, currentGoal.Id)
 		if err != nil {
 			return fmt.Errorf("storage.GetCurrentProgress: %w", err)
+		}
+
+		// если по новой цели на текущий период не хватило выполнений
+		// сбрасываем статистику
+		if currentPeriodExecutionCount < newGoal.TimesPerFrequency {
+			currentProgress.TotalCompletedPeriods -= 1
+
+			// MostLongestStreak обновляется, когда CurrentStreak больше чем предыдущий MostLongestStreak
+			// Логично, что CurrentStreak будет такой же, как MostLongestStreak, если произошло обновление MostLongestStreak
+			if currentProgress.CurrentStreak == currentProgress.MostLongestStreak {
+				currentProgress.MostLongestStreak -= 1
+				currentProgress.CurrentStreak -= 1
+			} else {
+				currentProgress.CurrentStreak -= 1
+			}
 		}
 
 		err = i.storage.UpdateGoalStat(ctx, newGoalId, currentProgress)
