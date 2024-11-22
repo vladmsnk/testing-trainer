@@ -175,7 +175,7 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 
 		// если по новой цели на текущий период не хватило выполнений
 		// сбрасываем статистику
-		if currentPeriodExecutionCount < newGoal.TimesPerFrequency {
+		if currentPeriodExecutionCount == currentGoal.TimesPerFrequency && currentPeriodExecutionCount < newGoal.TimesPerFrequency {
 			currentProgress.TotalCompletedPeriods -= 1
 
 			// MostLongestStreak обновляется, когда CurrentStreak больше чем предыдущий MostLongestStreak
