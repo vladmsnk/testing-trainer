@@ -49,8 +49,7 @@ services:
     ports:
       - 7001:7001
     command: ./app
-    networks:
-      - net
+    network_mode: "host"
 volumes:
   pg-data:
 
