@@ -22,7 +22,9 @@ func toEntityHabit(daoHabit habit) entities.Habit {
 			FrequencyType:        entities.FrequencyTypeFromString(daoHabit.frequencyType.V),
 			NextCheckDate:        daoHabit.nextCheckDate.V,
 			CreatedAt:            daoHabit.createdAt.V,
-			PreviousGoalId:       daoHabit.previousGoalId.V,
+			IsCompleted:          daoHabit.isCompleted.V,
+			PreviousGoalIDs:      daoHabit.previousGoalIDs,
+			StartTrackingAt:      daoHabit.startTrackingAt.V,
 		},
 	}
 }
@@ -37,6 +39,7 @@ func toEntityGoal(daoGoal goal) entities.Goal {
 		NextCheckDate:        daoGoal.nextCheckDate,
 		IsCompleted:          daoGoal.isCompleted,
 		IsActive:             daoGoal.isActive,
-		PreviousGoalId:       daoGoal.previousGoalId,
+		PreviousGoalIDs:      daoGoal.previousGoalIDs,
+		StartTrackingAt:      daoGoal.startTrackingAt,
 	}
 }

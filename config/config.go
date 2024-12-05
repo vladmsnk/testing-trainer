@@ -1,13 +1,18 @@
 package config
 
 import (
+	"fmt"
+	"github.com/joho/godotenv"
 	"os"
 
 	"gopkg.in/yaml.v3"
 	"strconv"
 )
 
-const pathToConfig = "./etc/config.yaml"
+const (
+	pathToConfig  = "./etc/config.yaml"
+	pathToEnvFile = "./etc/config.env"
+)
 
 type Config struct {
 	HTTP Http     `yaml:"http"`
@@ -41,6 +46,51 @@ func Init() error {
 
 	if err = yaml.Unmarshal(rawYaml, &ConfigStruct); err != nil {
 		return err
+	}
+	return nil
+}
+
+func InitConfigWithEnvs() error {
+	var envs map[string]string
+
+	err := godotenv.Load(pathToEnvFile)
+	if err != nil {
+		return fmt.Errorf("godotenv.Load: %w", err)
+	}
+	envs, err = godotenv.Read(pathToEnvFile)
+	if err != nil {
+		return fmt.Errorf("godotenv.Load: %w", err)
+	}
+
+	pgHost := envs["PG_HOST"]
+	pgPort, err := strconv.Atoi(envs["PG_PORT"])
+	if err != nil {
+		return fmt.Errorf("strconv.Atoi: %w", err)
+	}
+	pgUser := envs["PG_USER"]
+	pgPassword := envs["PG_PASSWORD"]
+	pgDatabase := envs["PG_DATABASE"]
+	pgSSLMode := envs["PG_SSLMODE"]
+
+	httpHost := envs["HTTP_HOST"]
+	httpPort, err := strconv.Atoi(envs["HTTP_PORT"])
+	if err != nil {
+		return fmt.Errorf("strconv.Atoi: %w", err)
+	}
+
+	ConfigStruct = Config{
+		HTTP: Http{
+			Host: httpHost,
+			Port: httpPort,
+		},
+		PG: Postgres{
+			Host:     pgHost,
+			Port:     pgPort,
+			User:     pgUser,
+			Password: pgPassword,
+			Database: pgDatabase,
+			SSLMode:  pgSSLMode,
+		},
 	}
 	return nil
 }

@@ -74,9 +74,9 @@ func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (enti
 	return r0, r1
 }
 
-// GetPreviousPeriodExecutionCount provides a mock function with given fields: ctx, goalId, frequencyType, createdAt, currentPeriod
-func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goalId int, frequencyType entities.FrequencyType, createdAt time.Time, currentPeriod int) (int, error) {
-	ret := _m.Called(ctx, goalId, frequencyType, createdAt, currentPeriod)
+// GetPreviousPeriodExecutionCount provides a mock function with given fields: ctx, goal
+func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error) {
+	ret := _m.Called(ctx, goal)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPreviousPeriodExecutionCount")
@@ -84,17 +84,17 @@ func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal
 
 	var r0 int
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, entities.FrequencyType, time.Time, int) (int, error)); ok {
-		return rf(ctx, goalId, frequencyType, createdAt, currentPeriod)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) (int, error)); ok {
+		return rf(ctx, goal)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, int, entities.FrequencyType, time.Time, int) int); ok {
-		r0 = rf(ctx, goalId, frequencyType, createdAt, currentPeriod)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) int); ok {
+		r0 = rf(ctx, goal)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, int, entities.FrequencyType, time.Time, int) error); ok {
-		r1 = rf(ctx, goalId, frequencyType, createdAt, currentPeriod)
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal) error); ok {
+		r1 = rf(ctx, goal)
 	} else {
 		r1 = ret.Error(1)
 	}

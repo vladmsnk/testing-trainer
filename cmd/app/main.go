@@ -21,7 +21,7 @@ func main() {
 		log.Print(recover())
 	}()
 
-	err := config.Init()
+	err := config.InitConfigWithEnvs()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -53,7 +53,7 @@ func runCheckGoalsScheduler(checker goals_checker.Checker) (gocron.Scheduler, er
 		return nil, fmt.Errorf("gocron.NewScheduler: %w", err)
 	}
 
-	cron := gocron.CronJob("* * * * *", false)
+	cron := gocron.CronJob("1 * * * *", false)
 	task := gocron.NewTask(func() {
 		err := checker.CheckGoals(context.Background())
 		if err != nil {

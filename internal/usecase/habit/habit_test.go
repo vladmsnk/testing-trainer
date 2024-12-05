@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/stretchr/testify/mock"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"testing_trainer/internal/entities"
@@ -115,10 +116,18 @@ func TestUpdateHabit(t *testing.T) {
 		habitId  = 1
 	)
 
+	startTrackingTime := time.Now().AddDate(0, 0, -1)
+
 	var (
-		goal            = entities.Goal{Id: 1, FrequencyType: entities.Daily, TimesPerFrequency: 2, TotalTrackingPeriods: 30}
-		habit           = entities.Habit{Id: habitId, Description: "Drink water", Goal: &goal}
-		newGoal         = entities.Goal{Id: 2, FrequencyType: entities.Daily, TimesPerFrequency: 3, TotalTrackingPeriods: 30}
+		goal    = entities.Goal{Id: 1, FrequencyType: entities.Daily, TimesPerFrequency: 2, TotalTrackingPeriods: 30, StartTrackingAt: startTrackingTime}
+		habit   = entities.Habit{Id: habitId, Description: "Drink water", Goal: &goal}
+		newGoal = entities.Goal{
+			Id:                   2,
+			FrequencyType:        entities.Daily,
+			TimesPerFrequency:    3,
+			TotalTrackingPeriods: 30,
+			StartTrackingAt:      startTrackingTime,
+			PreviousGoalIDs:      []int{goal.Id}}
 		currentProgress = entities.Progress{
 			TotalCompletedPeriods: 1,
 			TotalCompletedTimes:   2,
@@ -129,6 +138,13 @@ func TestUpdateHabit(t *testing.T) {
 			Id:          habitId,
 			Description: "Drink juice",
 			Goal:        &newGoal,
+		}
+
+		newProgress = entities.Progress{
+			TotalCompletedPeriods: 0,
+			TotalCompletedTimes:   2,
+			CurrentStreak:         0,
+			MostLongestStreak:     0,
 		}
 	)
 
@@ -149,8 +165,11 @@ func TestUpdateHabit(t *testing.T) {
 
 		mockStorage.On("DeactivateGoalByID", ctx, goal.Id).Return(nil)
 		mockStorage.On("CreateGoal", ctx, habitId, newGoal).Return(newGoal.Id, nil)
+
+		mockStorage.On("GetCurrentPeriodExecutionCount", ctx, goal).Return(2, nil)
+
 		mockStorage.On("GetCurrentProgress", ctx, goal.Id).Return(currentProgress, nil)
-		mockStorage.On("UpdateGoalStat", ctx, newGoal.Id, currentProgress).Return(nil)
+		mockStorage.On("UpdateGoalStat", ctx, newGoal.Id, newProgress).Return(nil)
 
 		habituc := New(mockStorage, mockUserUc, tx)
 		err := habituc.UpdateHabit(ctx, username, newHabit)
