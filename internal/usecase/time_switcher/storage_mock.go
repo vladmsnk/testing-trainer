@@ -92,12 +92,12 @@ func (_m *MockStorage) GetProgressesForAllGoals(ctx context.Context, username st
 	return r0, r1
 }
 
-// GetSnapshotForTheCurrentTime provides a mock function with given fields: ctx, username, _a2
-func (_m *MockStorage) GetSnapshotForTheCurrentTime(ctx context.Context, username string, _a2 time.Time) (entities.ProgressSnapshot, error) {
+// GetSnapshotForTheTime provides a mock function with given fields: ctx, username, _a2
+func (_m *MockStorage) GetSnapshotForTheTime(ctx context.Context, username string, _a2 time.Time) (entities.ProgressSnapshot, error) {
 	ret := _m.Called(ctx, username, _a2)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetSnapshotForTheCurrentTime")
+		panic("no return value specified for GetSnapshotForTheTime")
 	}
 
 	var r0 entities.ProgressSnapshot

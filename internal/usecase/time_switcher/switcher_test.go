@@ -85,8 +85,8 @@ func TestSwitchToNextDay(t *testing.T) {
 		mockTimeManager.On("SetTimeOffset", ctx, username, 1).Return(nil).Times(1)
 		mockTimeManager.On("GetCurrentTime", ctx, username).Return(nextDayTime, nil).Times(1)
 
-		mockStorage.On("GetSnapshotForTheCurrentTime", ctx, username, nextDayTime).Return(entities.ProgressSnapshot{}, storage.ErrNotFound)
-		mockStorage.On("GetSnapshotForTheCurrentTime", ctx, username, currentTime).Return(entities.ProgressSnapshot{}, storage.ErrNotFound)
+		mockStorage.On("GetSnapshotForTheTime", ctx, username, nextDayTime).Return(entities.ProgressSnapshot{}, storage.ErrNotFound)
+		mockStorage.On("GetSnapshotForTheTime", ctx, username, currentTime).Return(entities.ProgressSnapshot{}, storage.ErrNotFound)
 		mockStorage.On("GetProgressesForAllGoals", ctx, username, []int64{}).Return(currentProgresses, nil)
 
 		for i, progress := range copiedProgresses {
