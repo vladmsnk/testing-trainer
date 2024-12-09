@@ -36,7 +36,7 @@ func NewAuthHandler(r *gin.RouterGroup, uc UseCase) {
 // @Summary register endpoint
 // @Schemes
 // @Description Registers users in the system
-// @Tags example
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param requestBody body RegisterRequest true "Register user"
@@ -77,7 +77,7 @@ func (h *Handler) Register(c *gin.Context) {
 // @Summary login endpoint
 // @Schemes
 // @Description Authenticates users and provides a token
-// @Tags example
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param requestBody body LoginRequest true "Login user"
@@ -118,7 +118,7 @@ func (h *Handler) Login(c *gin.Context) {
 // @Summary logout endpoint
 // @Schemes
 // @Description Logs out users from the system
-// @Tags example
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param requestBody body LogoutRequest true "Logout"
@@ -152,7 +152,7 @@ func (h *Handler) Logout(c *gin.Context) {
 // @Summary refresh token endpoint
 // @Schemes
 // @Description Refreshes the authentication token
-// @Tags example
+// @Tags auth
 // @Accept json
 // @Produce json
 // @Param requestBody body RefreshTokenRequest true "Refresh token"

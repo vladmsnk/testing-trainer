@@ -2,6 +2,7 @@ package storage
 
 import (
 	"database/sql"
+	"github.com/jackc/pgx/v5/pgtype"
 	"time"
 )
 
@@ -33,4 +34,21 @@ type goal struct {
 	previousGoalId       sql.Null[int] `db:"previous_goal_id"`
 	previousGoalIDs      []int         `db:"previous_goal_ids"`
 	startTrackingAt      time.Time     `db:"start_tracking_at"`
+}
+
+type userProgress struct {
+	username              string `db:"username"`
+	id                    int    `db:"id"`
+	goalId                int    `db:"goal_id"`
+	totalCompletedPeriods int    `db:"total_completed_periods"`
+	totalCompletedTimes   int    `db:"total_completed_times"`
+	totalSkippedPeriods   int    `db:"total_skipped_periods"`
+	mostLongestStreak     int    `db:"most_longest_streak"`
+	currentStreak         int    `db:"current_streak"`
+}
+
+type snapshot struct {
+	username           string              `db:"username"`
+	currentProgressIDs pgtype.Array[int64] `db:"current_progress_ids"`
+	createdAt          time.Time           `db:"time_swticher"`
 }

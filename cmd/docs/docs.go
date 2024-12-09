@@ -25,7 +25,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "auth"
                 ],
                 "summary": "login endpoint",
                 "parameters": [
@@ -65,7 +65,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "auth"
                 ],
                 "summary": "logout endpoint",
                 "parameters": [
@@ -105,7 +105,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "auth"
                 ],
                 "summary": "refresh token endpoint",
                 "parameters": [
@@ -145,7 +145,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "auth"
                 ],
                 "summary": "register endpoint",
                 "parameters": [
@@ -175,6 +175,138 @@ const docTemplate = `{
                 }
             }
         },
+        "/time/current-time": {
+            "get": {
+                "description": "Returns the current time",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time"
+                ],
+                "summary": "get current time endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/time/next-day": {
+            "post": {
+                "description": "Switches to the next day",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time"
+                ],
+                "summary": "switch to next day endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/time/reset-time": {
+            "put": {
+                "description": "Resets the time to the current day",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "time"
+                ],
+                "summary": "reset time to current day endpoint",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/tracker/habits": {
             "get": {
                 "description": "Lists all habits for the authenticated user",
@@ -185,7 +317,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "habit"
                 ],
                 "summary": "list user habits endpoint",
                 "parameters": [
@@ -230,7 +362,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "habit"
                 ],
                 "summary": "update habit endpoint",
                 "parameters": [
@@ -281,7 +413,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "habit"
                 ],
                 "summary": "create habit endpoint",
                 "parameters": [
@@ -334,7 +466,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "habit"
                 ],
                 "summary": "list users completed habits endpoint",
                 "parameters": [
@@ -381,7 +513,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "habit"
                 ],
                 "summary": "delete habit endpoint",
                 "parameters": [
@@ -432,7 +564,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "progress"
                 ],
                 "summary": "get progress endpoint",
                 "parameters": [
@@ -481,7 +613,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "progress"
                 ],
                 "summary": "add progress endpoint",
                 "parameters": [
@@ -532,7 +664,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "example"
+                    "progress"
                 ],
                 "summary": "get reminder endpoint",
                 "parameters": [

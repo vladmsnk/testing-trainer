@@ -12,6 +12,8 @@ import (
 	"testing_trainer/internal/usecase/goals_checker"
 	"testing_trainer/internal/usecase/habit"
 	"testing_trainer/internal/usecase/progress"
+	"testing_trainer/internal/usecase/time_manager"
+	"testing_trainer/internal/usecase/time_switcher"
 	"testing_trainer/internal/usecase/user"
 	"testing_trainer/scripts/migrations"
 )
@@ -52,6 +54,8 @@ func main() {
 		habitUc        = habit.New(store, authUc, tx)
 		processUc      = progress.New(authUc, store, tx)
 		goalsCheckerUC = goals_checker.NewChecker(store, tx)
+		timeManager    = time_manager.New(store)
+		timeSwitcherUC = time_switcher.New(timeManager, store)
 	)
 
 	scheduler, err := runCheckGoalsScheduler(goalsCheckerUC)
@@ -63,7 +67,7 @@ func main() {
 	}()
 	scheduler.Start()
 
-	router := setupRouter(authUc, habitUc, processUc)
+	router := setupRouter(authUc, habitUc, processUc, timeSwitcherUC)
 	log.Println("Swagger is available on http://" + config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port) + "/swagger/index.html")
 	err = router.Run(config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port))
 	if err != nil {

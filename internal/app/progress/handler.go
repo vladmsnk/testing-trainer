@@ -34,7 +34,7 @@ func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
 // @Summary add progress endpoint
 // @Schemes
 // @Description Adds progress to the habit
-// @Tags example
+// @Tags progress
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
@@ -83,7 +83,7 @@ func (h *Handler) AddProgress(c *gin.Context) {
 // @Summary get progress endpoint
 // @Schemes
 // @Description Get progress of the habit
-// @Tags example
+// @Tags progress
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
@@ -131,7 +131,7 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 // @Summary get reminder endpoint
 // @Schemes
 // @Description Get reminder for the user
-// @Tags example
+// @Tags progress
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"

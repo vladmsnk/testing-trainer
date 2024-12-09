@@ -446,6 +446,52 @@ select total_completed_periods,total_skipped_periods, total_completed_times, mos
 	return progress, nil
 }
 
+func (s *Storage) GetProgressesForAllGoals(ctx context.Context, username string, progressIDs []int64) ([]entities.Progress, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+select 
+    h.username as username,
+    gs.id as id,
+    gs.goal_id as goal_id,
+    gs.total_completed_periods as total_completed_periods,
+    gs.total_completed_times as total_completed_times,
+    gs.total_skipped_periods as total_skipped_periods,
+    gs.most_longest_streak as most_longest_streak,
+    gs.current_streak as current_streak
+    from  habits h 
+    join public.goals g on h.id = g.habit_id 
+    join public.goal_stats gs on g.id = gs.goal_id
+where h.username = $1 and g.is_active = true and g.is_completed = false
+`
+	args := []interface{}{username}
+
+	if len(progressIDs) > 0 {
+		query += ` and gs.id = any($2);`
+		args = append(args, progressIDs)
+	}
+
+	rows, err := pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("db.Query username=%s: %w", username, err)
+	}
+	defer rows.Close()
+
+	var result []entities.Progress
+
+	for rows.Next() {
+		p := userProgress{}
+
+		err := rows.Scan(&p.username, &p.id, &p.goalId, &p.totalCompletedPeriods, &p.totalCompletedTimes, &p.totalSkippedPeriods, &p.mostLongestStreak, &p.currentStreak)
+		if err != nil {
+			return nil, fmt.Errorf("rows.Scan: %w", err)
+		}
+
+		result = append(result, toEntityProgress(p))
+	}
+	return result, nil
+}
+
 func (s *Storage) SetGoalCompleted(ctx context.Context, goalId int) error {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
@@ -638,4 +684,105 @@ select access_token, refresh_token, username, expires_at from tokens where usern
 		return entities.Token{}, fmt.Errorf("db.QueryRow: %w", err)
 	}
 	return token, nil
+}
+
+func (s *Storage) GetSnapshotForTheTime(ctx context.Context, username string, time time.Time) (entities.ProgressSnapshot, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+SELECT
+    username,
+    progress_ids,
+    created_at
+FROM 
+    progress_snapshots
+WHERE 
+    username = $1
+    AND created_at::date = $2::date
+ORDER BY 
+    created_at::date DESC,
+    created_at DESC
+LIMIT 1;
+`
+
+	var ss snapshot
+	err := pool.QueryRow(ctx, query, username, time).Scan(&ss.username, &ss.currentProgressIDs, &ss.createdAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.ProgressSnapshot{}, ErrNotFound
+		}
+		return entities.ProgressSnapshot{}, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return toEntitySnapshot(ss), nil
+}
+
+func (s *Storage) CreateProgress(ctx context.Context, progress entities.Progress) (int64, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+insert into goal_stats (goal_id, total_completed_periods, total_completed_times, total_skipped_periods, most_longest_streak, current_streak, created_at, updated_at)
+values ($1, $2, $3, $4, $5, $6, $7, $8) returning id;
+`
+
+	var id int64
+	err := pool.QueryRow(ctx, query, progress.GoalID, progress.TotalCompletedPeriods, progress.TotalCompletedTimes, progress.TotalSkippedPeriods, progress.MostLongestStreak, progress.CurrentStreak, progress.CreatedAt, progress.UpdatedAt).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return id, nil
+}
+
+func (s *Storage) CreateProgressSnapshot(ctx context.Context, snapshot entities.ProgressSnapshot) error {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+insert into progress_snapshots (username, progress_ids, created_at)
+values ($1, $2, $3);
+`
+	_, err := pool.Exec(ctx, query, snapshot.Username, snapshot.CurrentProgressIDs, snapshot.CreatedAt)
+	if err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) GetUserTimeOffset(ctx context.Context, username string) (int, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+select time_offset from users_time where username = $1;
+`
+	var timeOffset int
+	err := pool.QueryRow(ctx, query, username).Scan(&timeOffset)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+		return 0, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return timeOffset, nil
+}
+
+func (s *Storage) UpdateUserTimeOffset(ctx context.Context, username string, offset int) error {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+INSERT INTO users_time (username, time_offset)
+VALUES ($1, $2)
+ON CONFLICT (username)
+DO UPDATE SET time_offset = CASE
+    WHEN $2 = 0 THEN 0
+    ELSE users_time.time_offset + $2
+END;
+`
+	_, err := pool.Exec(ctx, query, username, offset)
+	if err != nil {
+		return fmt.Errorf("db.Exec: %w", err)
+	}
+
+	return nil
 }

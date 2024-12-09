@@ -40,7 +40,7 @@ func NewHabitHandler(r *gin.RouterGroup, uc UseCase) {
 // @Summary create habit endpoint
 // @Schemes
 // @Description Creates habit in the system
-// @Tags example
+// @Tags habit
 // @Accept json
 // @Produce json
 // @Param requestBody body CreateHabitRequest true "Create habit"
@@ -80,7 +80,7 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 // @Summary list user habits endpoint
 // @Schemes
 // @Description Lists all habits for the authenticated user
-// @Tags example
+// @Tags habit
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
@@ -107,7 +107,7 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 // @Summary list users completed habits endpoint
 // @Schemes
 // @Description Lists all completed habits for the authenticated user
-// @Tags example
+// @Tags habit
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
@@ -135,7 +135,7 @@ func (h *Handler) ListUserCompletedHabits(c *gin.Context) {
 // @Summary update habit endpoint
 // @Schemes
 // @Description Updates a habit for the authenticated user
-// @Tags example
+// @Tags habit
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"
@@ -186,7 +186,7 @@ func (h *Handler) UpdateHabit(c *gin.Context) {
 // @Summary delete habit endpoint
 // @Schemes
 // @Description Deletes a habit for the authenticated user
-// @Tags example
+// @Tags habit
 // @Accept json
 // @Produce json
 // @Param Authorization header string true "Bearer"

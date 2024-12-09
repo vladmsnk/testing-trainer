@@ -43,3 +43,23 @@ func toEntityGoal(daoGoal goal) entities.Goal {
 		StartTrackingAt:      daoGoal.startTrackingAt,
 	}
 }
+
+func toEntityProgress(daoProgress userProgress) entities.Progress {
+	return entities.Progress{
+		Id:                    daoProgress.id,
+		GoalID:                daoProgress.goalId,
+		TotalCompletedPeriods: daoProgress.totalCompletedPeriods,
+		TotalCompletedTimes:   daoProgress.totalCompletedTimes,
+		TotalSkippedPeriods:   daoProgress.totalSkippedPeriods,
+		MostLongestStreak:     daoProgress.mostLongestStreak,
+		CurrentStreak:         daoProgress.currentStreak,
+	}
+}
+
+func toEntitySnapshot(daoSnapshot snapshot) entities.ProgressSnapshot {
+	return entities.ProgressSnapshot{
+		Username:           daoSnapshot.username,
+		CurrentProgressIDs: daoSnapshot.currentProgressIDs.Elements,
+		CreatedAt:          daoSnapshot.createdAt,
+	}
+}

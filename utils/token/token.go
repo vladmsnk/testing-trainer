@@ -158,7 +158,7 @@ func ValidateToken(tokenString string, keyEnvSecret string) error {
 			return ErrTokenExpired
 		}
 	} else {
-		return fmt.Errorf("token does not have an expiration time")
+		return fmt.Errorf("token does not have an expiration time_swticher")
 	}
 
 	return nil

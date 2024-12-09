@@ -14,13 +14,15 @@ import (
 	"testing_trainer/internal/app/auth"
 	"testing_trainer/internal/app/habit"
 	"testing_trainer/internal/app/progress"
+	"testing_trainer/internal/app/time_swticher"
 	"testing_trainer/internal/usecase/goals_checker"
+	"testing_trainer/internal/usecase/time_switcher"
 	"testing_trainer/internal/usecase/user"
 	"testing_trainer/middlewares"
 	"time"
 )
 
-func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress.UseCase) *gin.Engine {
+func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress.UseCase, timeSwitcher time_switcher.UseCase) *gin.Engine {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/api/v1"
@@ -33,9 +35,13 @@ func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress
 	protectedHabitHandlers := r.Group("/api/v1/tracker")
 	protectedHabitHandlers.Use(middlewares.AuthMiddleware(userUc))
 
+	protectedTimeSwitchHandlers := r.Group("/api/v1/time")
+	protectedTimeSwitchHandlers.Use(middlewares.AuthMiddleware(userUc))
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	habit.NewHabitHandler(protectedHabitHandlers, habitUc)
 	progress.NewProgressHandler(protectedHabitHandlers, progressUc)
+	time_swticher.NewHandler(protectedTimeSwitchHandlers, timeSwitcher)
 	return r
 }
 

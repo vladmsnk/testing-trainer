@@ -122,7 +122,7 @@ paths:
             type: string
       summary: login endpoint
       tags:
-      - example
+      - auth
   /auth/logout:
     post:
       consumes:
@@ -148,7 +148,7 @@ paths:
             type: string
       summary: logout endpoint
       tags:
-      - example
+      - auth
   /auth/refresh:
     post:
       consumes:
@@ -174,7 +174,7 @@ paths:
             type: string
       summary: refresh token endpoint
       tags:
-      - example
+      - auth
   /auth/register:
     post:
       consumes:
@@ -200,7 +200,94 @@ paths:
             type: string
       summary: register endpoint
       tags:
-      - example
+      - auth
+  /time/current-time:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current time
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: get current time endpoint
+      tags:
+      - time
+  /time/next-day:
+    post:
+      consumes:
+      - application/json
+      description: Switches to the next day
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: switch to next day endpoint
+      tags:
+      - time
+  /time/reset-time:
+    put:
+      consumes:
+      - application/json
+      description: Resets the time to the current day
+      parameters:
+      - description: Bearer
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: reset time to current day endpoint
+      tags:
+      - time
   /tracker/habits:
     get:
       consumes:
@@ -231,7 +318,7 @@ paths:
             type: string
       summary: list user habits endpoint
       tags:
-      - example
+      - habit
     post:
       consumes:
       - application/json
@@ -265,7 +352,7 @@ paths:
             type: string
       summary: create habit endpoint
       tags:
-      - example
+      - habit
     put:
       consumes:
       - application/json
@@ -299,7 +386,7 @@ paths:
             type: string
       summary: update habit endpoint
       tags:
-      - example
+      - habit
   /tracker/habits/{habitId}:
     delete:
       consumes:
@@ -333,7 +420,7 @@ paths:
             type: string
       summary: delete habit endpoint
       tags:
-      - example
+      - habit
   /tracker/habits/completed:
     get:
       consumes:
@@ -364,7 +451,7 @@ paths:
             type: string
       summary: list users completed habits endpoint
       tags:
-      - example
+      - habit
   /tracker/progress/{habitId}:
     get:
       consumes:
@@ -398,7 +485,7 @@ paths:
             type: string
       summary: get progress endpoint
       tags:
-      - example
+      - progress
     post:
       consumes:
       - application/json
@@ -431,7 +518,7 @@ paths:
             type: string
       summary: add progress endpoint
       tags:
-      - example
+      - progress
   /tracker/reminder:
     get:
       consumes:
@@ -456,7 +543,7 @@ paths:
             type: string
       summary: get reminder endpoint
       tags:
-      - example
+      - progress
   /version:
     get:
       consumes:
