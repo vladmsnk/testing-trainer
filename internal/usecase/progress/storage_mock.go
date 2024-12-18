@@ -16,17 +16,81 @@ type MockStorage struct {
 	mock.Mock
 }
 
-// AddHabitProgress provides a mock function with given fields: ctx, goalId
-func (_m *MockStorage) AddHabitProgress(ctx context.Context, goalId int) error {
-	ret := _m.Called(ctx, goalId)
+// AddProgressLog provides a mock function with given fields: ctx, goalId, createdAt
+func (_m *MockStorage) AddProgressLog(ctx context.Context, goalId int, createdAt time.Time) error {
+	ret := _m.Called(ctx, goalId, createdAt)
 
 	if len(ret) == 0 {
-		panic("no return value specified for AddHabitProgress")
+		panic("no return value specified for AddProgressLog")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int) error); ok {
-		r0 = rf(ctx, goalId)
+	if rf, ok := ret.Get(0).(func(context.Context, int, time.Time) error); ok {
+		r0 = rf(ctx, goalId, createdAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// ApplyProgressChangeBySnapshotID provides a mock function with given fields: ctx, snapshotID, progressChange
+func (_m *MockStorage) ApplyProgressChangeBySnapshotID(ctx context.Context, snapshotID int64, progressChange entities.ProgressChange) error {
+	ret := _m.Called(ctx, snapshotID, progressChange)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ApplyProgressChangeBySnapshotID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64, entities.ProgressChange) error); ok {
+		r0 = rf(ctx, snapshotID, progressChange)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// CreateProgress provides a mock function with given fields: ctx, _a1
+func (_m *MockStorage) CreateProgress(ctx context.Context, _a1 entities.Progress) (int64, error) {
+	ret := _m.Called(ctx, _a1)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateProgress")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Progress) (int64, error)); ok {
+		return rf(ctx, _a1)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Progress) int64); ok {
+		r0 = rf(ctx, _a1)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Progress) error); ok {
+		r1 = rf(ctx, _a1)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// CreateSnapshot provides a mock function with given fields: ctx, snapshot
+func (_m *MockStorage) CreateSnapshot(ctx context.Context, snapshot entities.ProgressSnapshot) error {
+	ret := _m.Called(ctx, snapshot)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateSnapshot")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, entities.ProgressSnapshot) error); ok {
+		r0 = rf(ctx, snapshot)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -64,9 +128,37 @@ func (_m *MockStorage) GetAllUserHabitsWithGoals(ctx context.Context, username s
 	return r0, r1
 }
 
-// GetCurrentPeriodExecutionCount provides a mock function with given fields: ctx, goal
-func (_m *MockStorage) GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error) {
-	ret := _m.Called(ctx, goal)
+// GetCurrentDayExecutionCount provides a mock function with given fields: ctx, goal, currentTime
+func (_m *MockStorage) GetCurrentDayExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error) {
+	ret := _m.Called(ctx, goal, currentTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCurrentDayExecutionCount")
+	}
+
+	var r0 int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) (int, error)); ok {
+		return rf(ctx, goal, currentTime)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) int); ok {
+		r0 = rf(ctx, goal, currentTime)
+	} else {
+		r0 = ret.Get(0).(int)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal, time.Time) error); ok {
+		r1 = rf(ctx, goal, currentTime)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetCurrentPeriodExecutionCount provides a mock function with given fields: ctx, goal, currentTime
+func (_m *MockStorage) GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error) {
+	ret := _m.Called(ctx, goal, currentTime)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetCurrentPeriodExecutionCount")
@@ -74,17 +166,17 @@ func (_m *MockStorage) GetCurrentPeriodExecutionCount(ctx context.Context, goal 
 
 	var r0 int
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) (int, error)); ok {
-		return rf(ctx, goal)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) (int, error)); ok {
+		return rf(ctx, goal, currentTime)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) int); ok {
-		r0 = rf(ctx, goal)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) int); ok {
+		r0 = rf(ctx, goal, currentTime)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal) error); ok {
-		r1 = rf(ctx, goal)
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal, time.Time) error); ok {
+		r1 = rf(ctx, goal, currentTime)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -113,6 +205,64 @@ func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (enti
 
 	if rf, ok := ret.Get(1).(func(context.Context, int) error); ok {
 		r1 = rf(ctx, goalId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetCurrentSnapshot provides a mock function with given fields: ctx, username, goalID, currentTime
+func (_m *MockStorage) GetCurrentSnapshot(ctx context.Context, username string, goalID int, currentTime time.Time) (entities.ProgressSnapshot, error) {
+	ret := _m.Called(ctx, username, goalID, currentTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetCurrentSnapshot")
+	}
+
+	var r0 entities.ProgressSnapshot
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, time.Time) (entities.ProgressSnapshot, error)); ok {
+		return rf(ctx, username, goalID, currentTime)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, time.Time) entities.ProgressSnapshot); ok {
+		r0 = rf(ctx, username, goalID, currentTime)
+	} else {
+		r0 = ret.Get(0).(entities.ProgressSnapshot)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, time.Time) error); ok {
+		r1 = rf(ctx, username, goalID, currentTime)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetFutureSnapshots provides a mock function with given fields: ctx, username, goalID, currentTime
+func (_m *MockStorage) GetFutureSnapshots(ctx context.Context, username string, goalID int, currentTime time.Time) ([]entities.ProgressSnapshot, error) {
+	ret := _m.Called(ctx, username, goalID, currentTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetFutureSnapshots")
+	}
+
+	var r0 []entities.ProgressSnapshot
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, time.Time) ([]entities.ProgressSnapshot, error)); ok {
+		return rf(ctx, username, goalID, currentTime)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, time.Time) []entities.ProgressSnapshot); ok {
+		r0 = rf(ctx, username, goalID, currentTime)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]entities.ProgressSnapshot)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, time.Time) error); ok {
+		r1 = rf(ctx, username, goalID, currentTime)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -176,9 +326,37 @@ func (_m *MockStorage) GetHabitGoal(ctx context.Context, habitId int) (entities.
 	return r0, r1
 }
 
-// GetPreviousPeriodExecutionCount provides a mock function with given fields: ctx, goal
-func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error) {
-	ret := _m.Called(ctx, goal)
+// GetMostRecentSnapshot provides a mock function with given fields: ctx, username, goalID, currentTime
+func (_m *MockStorage) GetMostRecentSnapshot(ctx context.Context, username string, goalID int, currentTime time.Time) (entities.ProgressSnapshot, error) {
+	ret := _m.Called(ctx, username, goalID, currentTime)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetMostRecentSnapshot")
+	}
+
+	var r0 entities.ProgressSnapshot
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, time.Time) (entities.ProgressSnapshot, error)); ok {
+		return rf(ctx, username, goalID, currentTime)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, time.Time) entities.ProgressSnapshot); ok {
+		r0 = rf(ctx, username, goalID, currentTime)
+	} else {
+		r0 = ret.Get(0).(entities.ProgressSnapshot)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, time.Time) error); ok {
+		r1 = rf(ctx, username, goalID, currentTime)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetPreviousPeriodExecutionCount provides a mock function with given fields: ctx, goal, currentTime
+func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error) {
+	ret := _m.Called(ctx, goal, currentTime)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPreviousPeriodExecutionCount")
@@ -186,17 +364,45 @@ func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal
 
 	var r0 int
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) (int, error)); ok {
-		return rf(ctx, goal)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) (int, error)); ok {
+		return rf(ctx, goal, currentTime)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) int); ok {
-		r0 = rf(ctx, goal)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) int); ok {
+		r0 = rf(ctx, goal, currentTime)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal) error); ok {
-		r1 = rf(ctx, goal)
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal, time.Time) error); ok {
+		r1 = rf(ctx, goal, currentTime)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetProgressByID provides a mock function with given fields: ctx, progressID
+func (_m *MockStorage) GetProgressByID(ctx context.Context, progressID int64) (entities.Progress, error) {
+	ret := _m.Called(ctx, progressID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetProgressByID")
+	}
+
+	var r0 entities.Progress
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, int64) (entities.Progress, error)); ok {
+		return rf(ctx, progressID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, int64) entities.Progress); ok {
+		r0 = rf(ctx, progressID)
+	} else {
+		r0 = ret.Get(0).(entities.Progress)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, int64) error); ok {
+		r1 = rf(ctx, progressID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -240,17 +446,17 @@ func (_m *MockStorage) SetGoalNextCheckDate(ctx context.Context, goalId int, nex
 	return r0
 }
 
-// UpdateGoalStat provides a mock function with given fields: ctx, goalId, _a2
-func (_m *MockStorage) UpdateGoalStat(ctx context.Context, goalId int, _a2 entities.Progress) error {
-	ret := _m.Called(ctx, goalId, _a2)
+// UpdateProgressByID provides a mock function with given fields: ctx, _a1
+func (_m *MockStorage) UpdateProgressByID(ctx context.Context, _a1 entities.Progress) error {
+	ret := _m.Called(ctx, _a1)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateGoalStat")
+		panic("no return value specified for UpdateProgressByID")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, entities.Progress) error); ok {
-		r0 = rf(ctx, goalId, _a2)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Progress) error); ok {
+		r0 = rf(ctx, _a1)
 	} else {
 		r0 = ret.Error(0)
 	}

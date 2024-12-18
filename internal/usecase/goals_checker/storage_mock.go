@@ -16,9 +16,37 @@ type MockStorage struct {
 	mock.Mock
 }
 
-// GetAllGoalsNeedCheck provides a mock function with given fields: ctx
-func (_m *MockStorage) GetAllGoalsNeedCheck(ctx context.Context) ([]entities.Goal, error) {
-	ret := _m.Called(ctx)
+// CreateProgress provides a mock function with given fields: ctx, progress
+func (_m *MockStorage) CreateProgress(ctx context.Context, progress entities.Progress) (int64, error) {
+	ret := _m.Called(ctx, progress)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateProgress")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Progress) (int64, error)); ok {
+		return rf(ctx, progress)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Progress) int64); ok {
+		r0 = rf(ctx, progress)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Progress) error); ok {
+		r1 = rf(ctx, progress)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// GetAllGoalsNeedCheck provides a mock function with given fields: ctx, currentTime
+func (_m *MockStorage) GetAllGoalsNeedCheck(ctx context.Context, currentTime time.Time) ([]entities.Goal, error) {
+	ret := _m.Called(ctx, currentTime)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetAllGoalsNeedCheck")
@@ -26,19 +54,19 @@ func (_m *MockStorage) GetAllGoalsNeedCheck(ctx context.Context) ([]entities.Goa
 
 	var r0 []entities.Goal
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) ([]entities.Goal, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) ([]entities.Goal, error)); ok {
+		return rf(ctx, currentTime)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) []entities.Goal); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, time.Time) []entities.Goal); ok {
+		r0 = rf(ctx, currentTime)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]entities.Goal)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, time.Time) error); ok {
+		r1 = rf(ctx, currentTime)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -74,9 +102,9 @@ func (_m *MockStorage) GetCurrentProgress(ctx context.Context, goalId int) (enti
 	return r0, r1
 }
 
-// GetPreviousPeriodExecutionCount provides a mock function with given fields: ctx, goal
-func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error) {
-	ret := _m.Called(ctx, goal)
+// GetPreviousPeriodExecutionCount provides a mock function with given fields: ctx, goal, currentTime
+func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error) {
+	ret := _m.Called(ctx, goal, currentTime)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetPreviousPeriodExecutionCount")
@@ -84,17 +112,17 @@ func (_m *MockStorage) GetPreviousPeriodExecutionCount(ctx context.Context, goal
 
 	var r0 int
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) (int, error)); ok {
-		return rf(ctx, goal)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) (int, error)); ok {
+		return rf(ctx, goal, currentTime)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal) int); ok {
-		r0 = rf(ctx, goal)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Goal, time.Time) int); ok {
+		r0 = rf(ctx, goal, currentTime)
 	} else {
 		r0 = ret.Get(0).(int)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal) error); ok {
-		r1 = rf(ctx, goal)
+	if rf, ok := ret.Get(1).(func(context.Context, entities.Goal, time.Time) error); ok {
+		r1 = rf(ctx, goal, currentTime)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -120,17 +148,17 @@ func (_m *MockStorage) SetGoalNextCheckDate(ctx context.Context, goalId int, nex
 	return r0
 }
 
-// UpdateGoalStat provides a mock function with given fields: ctx, goalId, progress
-func (_m *MockStorage) UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error {
-	ret := _m.Called(ctx, goalId, progress)
+// UpdateProgressByID provides a mock function with given fields: ctx, progress
+func (_m *MockStorage) UpdateProgressByID(ctx context.Context, progress entities.Progress) error {
+	ret := _m.Called(ctx, progress)
 
 	if len(ret) == 0 {
-		panic("no return value specified for UpdateGoalStat")
+		panic("no return value specified for UpdateProgressByID")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, int, entities.Progress) error); ok {
-		r0 = rf(ctx, goalId, progress)
+	if rf, ok := ret.Get(0).(func(context.Context, entities.Progress) error); ok {
+		r0 = rf(ctx, progress)
 	} else {
 		r0 = ret.Error(0)
 	}

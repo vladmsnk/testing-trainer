@@ -1,6 +1,8 @@
 package entities
 
-import "time"
+import (
+	"time"
+)
 
 type Habit struct {
 	Id          int
@@ -12,6 +14,7 @@ type Habit struct {
 
 type Goal struct {
 	Id                   int
+	Username             string
 	FrequencyType        FrequencyType
 	TimesPerFrequency    int
 	TotalTrackingPeriods int
@@ -96,19 +99,21 @@ func FrequencyTypeFromString(s string) FrequencyType {
 
 }
 
-func (g Goal) GetCurrentPeriod() int {
+func (g Goal) GetCurrentPeriod(currentTime time.Time) int {
+	dayOffset := currentTime.Sub(g.StartTrackingAt).Hours() / 24
+
 	switch g.FrequencyType {
 	case Daily:
 		// Calculate the number of full days since createdAt
-		return int(time.Since(g.StartTrackingAt).Hours() / 24)
+		return int(time.Since(g.StartTrackingAt).Hours()/24) + int(dayOffset)
 
 	case Weekly:
 		// Calculate the number of full weeks since createdAt
-		return int(time.Since(g.StartTrackingAt).Hours() / (24 * 7))
+		return int(time.Since(g.StartTrackingAt).Hours()/(24*7)) + int(dayOffset/7)
 
 	case Monthly:
 		// Calculate the number of full 31-day months since createdAt
-		daysSinceCreated := int(time.Since(g.StartTrackingAt).Hours() / 24)
+		daysSinceCreated := int(time.Since(g.StartTrackingAt).Hours()/24) + int(dayOffset)
 		return daysSinceCreated / 31 // Each "month" is treated as 31 days
 
 	default:

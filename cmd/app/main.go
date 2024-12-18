@@ -50,12 +50,14 @@ func main() {
 	}
 
 	var (
-		authUc         = user.New(store)
-		habitUc        = habit.New(store, authUc, tx)
-		processUc      = progress.New(authUc, store, tx)
-		goalsCheckerUC = goals_checker.NewChecker(store, tx)
-		timeManager    = time_manager.New(store)
-		timeSwitcherUC = time_switcher.New(timeManager, store)
+		timeManager = time_manager.New(store)
+
+		authUc    = user.New(store)
+		processUc = progress.New(authUc, store, tx, timeManager)
+
+		habitUc        = habit.New(store, authUc, tx, timeManager, processUc)
+		goalsCheckerUC = goals_checker.NewChecker(store, tx, timeManager, processUc)
+		timeSwitcherUC = time_switcher.New(timeManager)
 	)
 
 	scheduler, err := runCheckGoalsScheduler(goalsCheckerUC)

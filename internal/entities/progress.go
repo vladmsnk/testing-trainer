@@ -15,6 +15,21 @@ type Progress struct {
 	UpdatedAt             time.Time
 }
 
+func (p *Progress) DeepCopy() Progress {
+	return Progress{
+		Id:                    p.Id,
+		GoalID:                p.GoalID,
+		Username:              p.Username,
+		TotalCompletedPeriods: p.TotalCompletedPeriods,
+		TotalSkippedPeriods:   p.TotalSkippedPeriods,
+		TotalCompletedTimes:   p.TotalCompletedTimes,
+		MostLongestStreak:     p.MostLongestStreak,
+		CurrentStreak:         p.CurrentStreak,
+		CreatedAt:             p.CreatedAt,
+		UpdatedAt:             p.UpdatedAt,
+	}
+}
+
 type ProgressWithGoal struct {
 	Habit
 	Progress
@@ -26,4 +41,12 @@ type CurrentPeriodProgress struct {
 	CurrentPeriodCompletedTimes int
 	NeedToCompleteTimes         int
 	CurrentPeriod               int
+}
+
+type ProgressChange struct {
+	TotalCompletedPeriods int
+	TotalSkippedPeriods   int
+	TotalCompletedTimes   int
+	MostLongestStreak     int
+	CurrentStreak         int
 }

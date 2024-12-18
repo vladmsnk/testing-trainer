@@ -3,6 +3,7 @@ package goals_checker
 import (
 	"context"
 	"testing"
+	"testing_trainer/internal/storage"
 	"time"
 
 	"github.com/stretchr/testify/mock"
@@ -10,29 +11,37 @@ import (
 	"testing_trainer/internal/entities"
 )
 
+var (
+	initFunc = func(t *testing.T) (*MockStorage, *MockTransactor, *MockTimeManager) {
+		mockStorage := NewMockStorage(t)
+		mockTransactor := NewMockTransactor(t)
+		mockTimeManager := NewMockTimeManager(t)
+
+		return mockStorage, mockTransactor, mockTimeManager
+	}
+
+	currentTime = time.Now().UTC()
+)
+
 func TestCheckGoals(t *testing.T) {
+	username := "username"
+
 	goalsToCheck := []entities.Goal{{
 		Id:                   1,
+		Username:             username,
 		FrequencyType:        entities.Weekly,
 		TimesPerFrequency:    3,
 		TotalTrackingPeriods: 4,
 		IsActive:             true,
-		CreatedAt:            time.Now().UTC().AddDate(0, 0, -7),
-		NextCheckDate:        time.Now().UTC().Add(-time.Hour),
-		StartTrackingAt:      time.Now().UTC().AddDate(0, 0, -7),
+		CreatedAt:            currentTime.AddDate(0, 0, -7),
+		NextCheckDate:        currentTime.Add(-time.Hour),
+		StartTrackingAt:      currentTime.AddDate(0, 0, -7),
 	},
 	}
 
 	nextCheckDate := goalsToCheck[0].NextCheckDate.Add(7 * 24 * time.Hour)
 
 	ctx := context.Background()
-
-	initFunc := func(t *testing.T) (*MockStorage, *MockTransactor) {
-		mockStorage := NewMockStorage(t)
-		mockTransactor := NewMockTransactor(t)
-
-		return mockStorage, mockTransactor
-	}
 
 	t.Run("success: increase skipped days", func(t *testing.T) {
 		t.Parallel()
@@ -53,24 +62,26 @@ func TestCheckGoals(t *testing.T) {
 			TotalSkippedPeriods:   1,
 		}
 
-		mockStorage, mockTransactor := initFunc(t)
+		mockStorage, mockTransactor, mockTimeManager := initFunc(t)
 
-		mockStorage.On("GetAllGoalsNeedCheck", ctx).Return(goalsToCheck, nil)
+		mockTimeManager.On("GetCurrentTime", ctx, goalsCheckerUser).Return(currentTime, nil)
+
+		mockStorage.On("GetAllGoalsNeedCheck", ctx, currentTime).Return(goalsToCheck, nil)
 
 		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			fx := args.Get(1).(func(ctxTX context.Context) error)
 			_ = fx(ctx)
 		})
 
-		mockStorage.On("GetCurrentProgress", ctx, goalsToCheck[0].Id).Return(progress, nil)
+		mockStorage.On("GetProgressByTime", ctx, 1, username, currentTime).Return(entities.Progress{}, storage.ErrNotFound)
+		mockStorage.On("GetCurrentProgress", ctx, 1).Return(progress, nil)
 
-		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0]).Return(2, nil)
-
-		mockStorage.On("UpdateGoalStat", ctx, goalsToCheck[0].Id, progressToUpdate).Return(nil)
+		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0], currentTime).Return(2, nil)
 
 		mockStorage.On("SetGoalNextCheckDate", ctx, goalsToCheck[0].Id, nextCheckDate).Return(nil)
+		mockStorage.On("UpdateProgressByID", ctx, progressToUpdate).Return(nil)
 
-		checker := NewChecker(mockStorage, mockTransactor)
+		checker := NewChecker(mockStorage, mockTransactor, mockTimeManager)
 
 		err := checker.CheckGoals(ctx)
 		require.Nil(t, err)
@@ -87,21 +98,27 @@ func TestCheckGoals(t *testing.T) {
 			TotalSkippedPeriods:   0,
 		}
 
-		mockStorage, mockTransactor := initFunc(t)
+		mockStorage, mockTransactor, mockTimeManager := initFunc(t)
 
-		mockStorage.On("GetAllGoalsNeedCheck", ctx).Return(goalsToCheck, nil)
+		mockTimeManager.On("GetCurrentTime", ctx, goalsCheckerUser).Return(currentTime, nil)
+
+		mockStorage.On("GetAllGoalsNeedCheck", ctx, currentTime).Return(goalsToCheck, nil)
+
 		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
 			fx := args.Get(1).(func(ctxTX context.Context) error)
 			_ = fx(ctx)
 		})
 
-		mockStorage.On("GetCurrentProgress", ctx, goalsToCheck[0].Id).Return(progress, nil)
+		mockStorage.On("GetProgressByTime", ctx, 1, username, currentTime).Return(entities.Progress{}, storage.ErrNotFound)
+		mockStorage.On("GetCurrentProgress", ctx, 1).Return(progress, nil)
 
-		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0]).Return(3, nil)
+		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goalsToCheck[0], currentTime).Return(3, nil)
 
 		mockStorage.On("SetGoalNextCheckDate", ctx, goalsToCheck[0].Id, nextCheckDate).Return(nil)
 
-		checker := NewChecker(mockStorage, mockTransactor)
+		mockStorage.On("UpdateProgressByID", ctx, progress).Return(nil)
+
+		checker := NewChecker(mockStorage, mockTransactor, mockTimeManager)
 
 		err := checker.CheckGoals(ctx)
 		require.Nil(t, err)

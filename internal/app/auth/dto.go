@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"net/mail"
+	"regexp"
 )
 
 type RegisterRequest struct {
@@ -13,7 +14,11 @@ type RegisterRequest struct {
 
 func (r *RegisterRequest) Validate() error {
 	if len(r.Username) == 0 {
-		return errors.New("username cannot be empty")
+		return errors.New("username is required")
+	}
+
+	if err := validateUsername(r.Username); err != nil {
+		return err
 	}
 
 	if err := validateEmail(r.Email); err != nil {
@@ -22,6 +27,21 @@ func (r *RegisterRequest) Validate() error {
 
 	if len(r.Password) < 8 {
 		return errors.New("password must be at least 8 characters long")
+	}
+
+	return nil
+}
+
+func validateUsername(username string) error {
+	//containes only letters, numbers, and underscores
+	ok, _ := regexp.MatchString("^[a-zA-Z0-9_]*$", username)
+	if !ok {
+		return errors.New("username can only contain letters, numbers, and underscores")
+	}
+	//between 3 and 20 characters long
+
+	if len(username) < 3 || len(username) > 20 {
+		return errors.New("username must be between 3 and 20 characters long")
 	}
 
 	return nil

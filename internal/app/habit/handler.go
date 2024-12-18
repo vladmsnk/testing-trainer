@@ -21,7 +21,7 @@ type UseCase interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error)
-	UpdateHabit(ctx context.Context, username string, habit entities.Habit) error
+	UpdateHabitV2(ctx context.Context, username string, habit entities.Habit) error
 	DeleteHabit(ctx context.Context, username string, habitId int) error
 }
 
@@ -165,7 +165,7 @@ func (h *Handler) UpdateHabit(c *gin.Context) {
 		return
 	}
 
-	err = h.uc.UpdateHabit(c, username, toUpdateHabitEntity(updateHabitRequest))
+	err = h.uc.UpdateHabitV2(c, username, toUpdateHabitEntity(updateHabitRequest))
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})

@@ -12,6 +12,7 @@ type UseCase interface {
 	GetCurrentTime(ctx context.Context, username string) (time.Time, error)
 	SetTimeOffset(ctx context.Context, username string, offset int) error
 	ResetTime(ctx context.Context, username string) error
+	GetCurrentOffset(ctx context.Context, username string) (int, error)
 }
 
 type Implementation struct {
@@ -54,4 +55,12 @@ func (i *Implementation) ResetTime(ctx context.Context, username string) error {
 		return fmt.Errorf("i.storage.UpdateUserTimeOffset: %w", err)
 	}
 	return nil
+}
+
+func (i *Implementation) GetCurrentOffset(ctx context.Context, username string) (int, error) {
+	offset, err := i.storage.GetUserTimeOffset(ctx, username)
+	if err != nil {
+		return 0, fmt.Errorf("i.storage.GetUserTimeOffset: %w", err)
+	}
+	return offset, nil
 }

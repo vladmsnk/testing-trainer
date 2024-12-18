@@ -121,7 +121,7 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while retrieving habit progress"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, toHabitProgressResponse(progressWithGoal))

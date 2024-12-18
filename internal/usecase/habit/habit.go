@@ -36,6 +36,11 @@ type Transactor interface {
 	RunRepeatableRead(ctx context.Context, fx func(ctxTX context.Context) error) error
 }
 
+type ProgressGetter interface {
+	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
+	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+}
+
 type Storage interface {
 	ArchiveHabitById(ctx context.Context, habitId int) error
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
@@ -45,24 +50,40 @@ type Storage interface {
 	ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	DeactivateGoalByID(ctx context.Context, id int) error
 	CreateGoal(ctx context.Context, habitID int, goal entities.Goal) (int, error)
-	UpdateGoalStat(ctx context.Context, goalId int, progress entities.Progress) error
 	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateHabit(ctx context.Context, habit entities.Habit) error
-	GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal) (int, error)
+	GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error)
+	UpdateGoal(ctx context.Context, goal entities.Goal) error
+	UpdateProgressByID(ctx context.Context, progress entities.Progress) error
+}
+
+type TimeManager interface {
+	GetCurrentTime(ctx context.Context, username string) (time.Time, error)
+	GetCurrentOffset(ctx context.Context, username string) (int, error)
 }
 
 type Implementation struct {
-	storage Storage
-	userUc  UserUseCase
-	tx      Transactor
+	storage         Storage
+	userUc          UserUseCase
+	tx              Transactor
+	timeManager     TimeManager
+	progressManager ProgressGetter
 }
 
-func New(storage Storage, userUc UserUseCase, tx Transactor) *Implementation {
-	return &Implementation{storage: storage, userUc: userUc, tx: tx}
+func New(storage Storage, userUc UserUseCase, tx Transactor, timeManager TimeManager, progressManager ProgressGetter) *Implementation {
+	return &Implementation{storage: storage, userUc: userUc, tx: tx, timeManager: timeManager, progressManager: progressManager}
 }
 
 func (i *Implementation) CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error) {
-	_, err := i.userUc.GetUserByUsername(ctx, username)
+	currentOffset, err := i.timeManager.GetCurrentOffset(ctx, username)
+	if err != nil {
+		return 0, fmt.Errorf("i.timeManager.GetCurrentOffset: %w", err)
+	}
+	if currentOffset != 0 {
+		return 0, fmt.Errorf("can't create habit from future")
+	}
+
+	_, err = i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return 0, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
 	}
@@ -109,6 +130,67 @@ func (i *Implementation) ListUserHabits(ctx context.Context, username string) ([
 	})
 
 	return userHabits, nil
+}
+
+func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, habit entities.Habit) error {
+	err := i.tx.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
+
+		currentOffset, err := i.timeManager.GetCurrentOffset(ctx, username)
+		if err != nil {
+			return fmt.Errorf("i.timeManager.GetCurrentOffset: %w", err)
+		}
+		if currentOffset != 0 {
+			return fmt.Errorf("can't update habit from future")
+		}
+
+		currentTime, err := i.timeManager.GetCurrentTime(ctx, username)
+		if err != nil {
+			return fmt.Errorf("i.timeManager.GetCurrentTime: %w", err)
+		}
+
+		_, err = i.userUc.GetUserByUsername(ctx, username)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return ErrUserNotFound
+			}
+			return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
+		}
+
+		currentHabit, err := i.storage.GetHabitById(ctx, username, habit.Id)
+		if err != nil {
+			if errors.Is(err, storage.ErrNotFound) {
+				return ErrHabitNotFound
+			}
+			return fmt.Errorf("storage.GetHabitById: %w", err)
+		}
+
+		if entities.IsHabitChanged(currentHabit, habit) {
+			err := i.storage.UpdateHabit(ctx, habit)
+			if err != nil {
+				return fmt.Errorf("storage.UpdateHabit: %w", err)
+			}
+		}
+
+		currentGoal := currentHabit.Goal
+		newGoal := habit.Goal
+		newGoal.Id = currentGoal.Id
+
+		if entities.IsGoalChanged(currentGoal, newGoal) {
+			err := i.storage.UpdateGoal(ctx, *newGoal)
+			if err != nil {
+				return fmt.Errorf("storage.UpdateGoal: %w", err)
+			}
+
+			err = i.progressManager.RecalculateFutureProgressesByGoalUpdate(ctx, username, *currentGoal, *newGoal, currentTime)
+			if err != nil {
+				return fmt.Errorf("progressManager.RecalculateFutureProgressesByGoalUpdate: %w", err)
+			}
+		}
+
+		return nil
+	})
+
+	return err
 }
 
 func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit entities.Habit) error {
@@ -158,12 +240,12 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 
 		newGoal.PreviousGoalIDs = previousGoals
 
-		newGoalId, err := i.storage.CreateGoal(ctx, habit.Id, *newGoal)
+		_, err = i.storage.CreateGoal(ctx, habit.Id, *newGoal)
 		if err != nil {
 			return fmt.Errorf("storage.CreateGoal: %w", err)
 		}
 
-		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, *currentGoal)
+		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, *currentGoal, time.Now())
 		if err != nil {
 			return fmt.Errorf("storage.GetCurrentPeriodExecutionCount: %w", err)
 		}
@@ -188,10 +270,6 @@ func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit
 			}
 		}
 
-		err = i.storage.UpdateGoalStat(ctx, newGoalId, currentProgress)
-		if err != nil {
-			return fmt.Errorf("storage.UpdateGoalStat: %w", err)
-		}
 		// Текущая цель перестает быть активной
 		// Создается новая запись прогресса, куда переносится вся текущая статистика
 		// Теперь привычка отслеживается по новым правилам
@@ -224,7 +302,15 @@ func (i *Implementation) ListUserCompletedHabits(ctx context.Context, username s
 
 func (i *Implementation) DeleteHabit(ctx context.Context, username string, habitId int) error {
 	err := i.tx.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
-		_, err := i.userUc.GetUserByUsername(ctx, username)
+		currentOffset, err := i.timeManager.GetCurrentOffset(ctx, username)
+		if err != nil {
+			return fmt.Errorf("i.timeManager.GetCurrentOffset: %w", err)
+		}
+		if currentOffset != 0 {
+			return fmt.Errorf("can't delete habit from future")
+		}
+
+		_, err = i.userUc.GetUserByUsername(ctx, username)
 		if err != nil {
 			if errors.Is(err, storage.ErrNotFound) {
 				return ErrUserNotFound

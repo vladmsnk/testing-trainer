@@ -96,7 +96,6 @@ func TestSwitchToNextDay(t *testing.T) {
 		mockStorage.On("CreateProgressSnapshot", ctx, createdSnapshot).Return(nil)
 
 		uc := Implementation{
-			storage:     mockStorage,
 			timeManager: mockTimeManager,
 		}
 
