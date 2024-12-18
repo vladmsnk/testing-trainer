@@ -100,11 +100,11 @@ func (s *Storage) createGoalTx(ctx context.Context, tx pgx.Tx, habitID int, goal
 	}
 
 	query := `
-INSERT INTO goals (habit_id, frequency_type, times_per_frequency, total_tracking_periods, is_active, next_check_date)
-VALUES ($1, $2, $3, $4, $5, $6);
+INSERT INTO goals (habit_id, frequency_type, times_per_frequency, total_tracking_periods, is_active, next_check_date, start_tracking_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7);
 `
 
-	_, err := tx.Exec(ctx, query, habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, true, goal.NextCheckDate)
+	_, err := tx.Exec(ctx, query, habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, true, goal.NextCheckDate, goal.StartTrackingAt)
 	if err != nil {
 		return fmt.Errorf("tx.Exec habit_id=%d frequency_type=%s times_per_frequency=%d total_tracking_periods=%d: %w", habitID, goal.FrequencyType, goal.TimesPerFrequency, goal.TotalTrackingPeriods, err)
 	}

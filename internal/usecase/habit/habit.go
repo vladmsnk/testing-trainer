@@ -83,6 +83,11 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 		return 0, fmt.Errorf("can't create habit from future")
 	}
 
+	currentTime, err := i.timeManager.GetCurrentTime(ctx, username)
+	if err != nil {
+		return 0, fmt.Errorf("i.timeManager.GetCurrentTime: %w", err)
+	}
+
 	_, err = i.userUc.GetUserByUsername(ctx, username)
 	if err != nil {
 		return 0, fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
@@ -100,6 +105,7 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 			nextCheckDate = time.Now().AddDate(0, 1, 0).Add(5 * time.Minute)
 		}
 
+		habit.Goal.StartTrackingAt = currentTime
 		habit.Goal.NextCheckDate = nextCheckDate.UTC()
 	}
 
