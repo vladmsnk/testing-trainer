@@ -60,6 +60,9 @@ func (i *Implementation) ResetTime(ctx context.Context, username string) error {
 func (i *Implementation) GetCurrentOffset(ctx context.Context, username string) (int, error) {
 	offset, err := i.storage.GetUserTimeOffset(ctx, username)
 	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			return 0, nil
+		}
 		return 0, fmt.Errorf("i.storage.GetUserTimeOffset: %w", err)
 	}
 	return offset, nil

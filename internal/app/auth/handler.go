@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 	"testing_trainer/internal/usecase/user"
 
 	"github.com/gin-gonic/gin"
@@ -133,10 +134,20 @@ func (h *Handler) Logout(c *gin.Context) {
 		return
 	}
 
+	req.AccessToken = RemoveBearerPrefix(req.AccessToken)
+
 	err := h.uc.Logout(c, entities.Token{AccessToken: req.AccessToken})
 	if err != nil {
-		if errors.Is(err, user.ErrUserNotFound) || errors.Is(err, user.ErrTokenNotFound) || errors.Is(err, user.ErrInvalidToken) {
-			c.JSON(http.StatusOK, gin.H{"message": "User logged out"})
+		if errors.Is(err, user.ErrUserNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, user.ErrInvalidToken) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, user.ErrTokenNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -167,6 +178,8 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 		return
 	}
 
+	req.RefreshToken = RemoveBearerPrefix(req.RefreshToken)
+
 	token, err := h.uc.RefreshToken(c, entities.Token{RefreshToken: req.RefreshToken})
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
@@ -178,4 +191,12 @@ func (h *Handler) RefreshToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": toRefreshResponse(token)})
+}
+
+func RemoveBearerPrefix(input string) string {
+	const prefix = "Bearer "
+	if strings.HasPrefix(input, prefix) {
+		return strings.TrimPrefix(input, prefix)
+	}
+	return input
 }

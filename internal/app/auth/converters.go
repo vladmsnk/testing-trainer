@@ -1,6 +1,9 @@
 package auth
 
-import "testing_trainer/internal/entities"
+import (
+	"fmt"
+	"testing_trainer/internal/entities"
+)
 
 func toEntityRegisterUser(req RegisterRequest) entities.RegisterUser {
 	return entities.RegisterUser{
@@ -19,14 +22,14 @@ func toEntityUser(req LoginRequest) entities.User {
 
 func toLoginResponse(token entities.Token) LoginResponse {
 	return LoginResponse{
-		AccessToken:  token.AccessToken,
-		RefreshToken: token.RefreshToken,
+		AccessToken:  fmt.Sprintf("Bearer %s", token.AccessToken),
+		RefreshToken: fmt.Sprintf("Bearer %s", token.RefreshToken),
 	}
 }
 
 func toRefreshResponse(token entities.Token) RefreshTokenResponse {
 	return RefreshTokenResponse{
-		AccessToken:  token.AccessToken,
-		RefreshToken: token.RefreshToken,
+		AccessToken:  fmt.Sprintf("Bearer %s", token.AccessToken),
+		RefreshToken: fmt.Sprintf("Bearer %s", token.RefreshToken),
 	}
 }

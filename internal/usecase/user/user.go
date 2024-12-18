@@ -108,6 +108,7 @@ func (i *Implementation) Login(ctx context.Context, user entities.User) (entitie
 }
 
 func (i *Implementation) Logout(ctx context.Context, tkn entities.Token) error {
+
 	err := token.ValidateToken(tkn.AccessToken, token.KeyEnvApiSecret)
 	if err != nil {
 		return ErrInvalidToken
