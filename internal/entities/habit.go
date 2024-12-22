@@ -100,7 +100,10 @@ func FrequencyTypeFromString(s string) FrequencyType {
 }
 
 func (g Goal) GetCurrentPeriod(currentTime time.Time) int {
-	dayOffset := currentTime.Sub(g.StartTrackingAt).Hours() / 24
+	var (
+		utcTime   = currentTime.UTC()
+		dayOffset = utcTime.Sub(g.StartTrackingAt).Hours() / 24
+	)
 
 	switch g.FrequencyType {
 	case Daily:

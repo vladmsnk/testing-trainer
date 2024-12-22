@@ -69,6 +69,11 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 
 	id, err := h.uc.CreateHabit(c, username, toCreateHabitEntity(createHabitRequest))
 	if err != nil {
+		if errors.Is(err, habit.ErrCreateHabitFromFuture) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -175,6 +180,15 @@ func (h *Handler) UpdateHabit(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
+		if errors.Is(err, habit.ErrUpdateCompletedHabit) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": err.Error()})
+			return
+		}
+		if errors.Is(err, habit.ErrUpdateHabitFromFuture) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -224,6 +238,12 @@ func (h *Handler) DeleteHabit(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
+
+		if errors.Is(err, habit.ErrDeleteHabitFromFuture) {
+			c.JSON(http.StatusPreconditionFailed, gin.H{"error": err.Error()})
+			return
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

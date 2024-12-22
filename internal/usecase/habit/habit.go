@@ -16,8 +16,13 @@ import (
 //go:generate mockery --dir . --name Transactor --structname MockTransactor --filename transactor_mock.go --output . --outpkg=habit
 
 var (
-	ErrUserNotFound  = fmt.Errorf("user not found")
-	ErrHabitNotFound = fmt.Errorf("habit not found")
+	ErrUserNotFound         = fmt.Errorf("user not found")
+	ErrHabitNotFound        = fmt.Errorf("habit not found")
+	ErrUpdateCompletedHabit = fmt.Errorf("cant update completed goal")
+
+	ErrCreateHabitFromFuture = fmt.Errorf("can't create habit from future")
+	ErrUpdateHabitFromFuture = fmt.Errorf("can't update habit from future")
+	ErrDeleteHabitFromFuture = fmt.Errorf("can't delete habit from future")
 )
 
 type UseCase interface {
@@ -80,7 +85,7 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 		return 0, fmt.Errorf("i.timeManager.GetCurrentOffset: %w", err)
 	}
 	if currentOffset != 0 {
-		return 0, fmt.Errorf("can't create habit from future")
+		return 0, ErrCreateHabitFromFuture
 	}
 
 	currentTime, err := i.timeManager.GetCurrentTime(ctx, username)
@@ -105,7 +110,7 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 			nextCheckDate = time.Now().AddDate(0, 1, 0).Add(5 * time.Minute)
 		}
 
-		habit.Goal.StartTrackingAt = currentTime
+		habit.Goal.StartTrackingAt = currentTime.UTC()
 		habit.Goal.NextCheckDate = nextCheckDate.UTC()
 	}
 
@@ -140,13 +145,12 @@ func (i *Implementation) ListUserHabits(ctx context.Context, username string) ([
 
 func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, habit entities.Habit) error {
 	err := i.tx.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
-
 		currentOffset, err := i.timeManager.GetCurrentOffset(ctx, username)
 		if err != nil {
 			return fmt.Errorf("i.timeManager.GetCurrentOffset: %w", err)
 		}
 		if currentOffset != 0 {
-			return fmt.Errorf("can't update habit from future")
+			return ErrUpdateHabitFromFuture
 		}
 
 		currentTime, err := i.timeManager.GetCurrentTime(ctx, username)
@@ -178,6 +182,10 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 		}
 
 		currentGoal := currentHabit.Goal
+		if currentGoal.IsCompleted {
+			return ErrUpdateCompletedHabit
+		}
+
 		newGoal := habit.Goal
 		newGoal.Id = currentGoal.Id
 
@@ -200,89 +208,7 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 }
 
 func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit entities.Habit) error {
-	err := i.tx.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
-		_, err := i.userUc.GetUserByUsername(ctx, username)
-		if err != nil {
-			if errors.Is(err, storage.ErrNotFound) {
-				return ErrUserNotFound
-			}
-			return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
-		}
-
-		currentHabit, err := i.storage.GetHabitById(ctx, username, habit.Id)
-		if err != nil {
-			if errors.Is(err, storage.ErrNotFound) {
-				return ErrHabitNotFound
-			}
-			return fmt.Errorf("storage.GetHabitById: %w", err)
-		}
-
-		if entities.IsHabitChanged(currentHabit, habit) {
-			err := i.storage.UpdateHabit(ctx, habit)
-			if err != nil {
-				return fmt.Errorf("storage.UpdateHabit: %w", err)
-			}
-		}
-		currentGoal := currentHabit.Goal
-
-		newGoal := habit.Goal
-		if !entities.IsGoalChanged(currentGoal, newGoal) {
-			return nil
-		}
-		newGoal.NextCheckDate = currentGoal.NextCheckDate
-		newGoal.StartTrackingAt = currentGoal.StartTrackingAt
-
-		err = i.storage.DeactivateGoalByID(ctx, currentGoal.Id)
-		if err != nil {
-			return fmt.Errorf("storage.DeactivateGoalByID: %w", err)
-		}
-		var previousGoals []int
-
-		if currentGoal.PreviousGoalIDs != nil {
-			previousGoals = append(currentGoal.PreviousGoalIDs, currentGoal.Id)
-		} else {
-			previousGoals = []int{currentGoal.Id}
-		}
-
-		newGoal.PreviousGoalIDs = previousGoals
-
-		_, err = i.storage.CreateGoal(ctx, habit.Id, *newGoal)
-		if err != nil {
-			return fmt.Errorf("storage.CreateGoal: %w", err)
-		}
-
-		currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, *currentGoal, time.Now())
-		if err != nil {
-			return fmt.Errorf("storage.GetCurrentPeriodExecutionCount: %w", err)
-		}
-
-		currentProgress, err := i.storage.GetCurrentProgress(ctx, currentGoal.Id)
-		if err != nil {
-			return fmt.Errorf("storage.GetCurrentProgress: %w", err)
-		}
-
-		// если по новой цели на текущий период не хватило выполнений
-		// сбрасываем статистику
-		if currentPeriodExecutionCount == currentGoal.TimesPerFrequency && currentPeriodExecutionCount < newGoal.TimesPerFrequency {
-			currentProgress.TotalCompletedPeriods -= 1
-
-			// MostLongestStreak обновляется, когда CurrentStreak больше чем предыдущий MostLongestStreak
-			// Логично, что CurrentStreak будет такой же, как MostLongestStreak, если произошло обновление MostLongestStreak
-			if currentProgress.CurrentStreak == currentProgress.MostLongestStreak {
-				currentProgress.MostLongestStreak -= 1
-				currentProgress.CurrentStreak -= 1
-			} else {
-				currentProgress.CurrentStreak -= 1
-			}
-		}
-
-		// Текущая цель перестает быть активной
-		// Создается новая запись прогресса, куда переносится вся текущая статистика
-		// Теперь привычка отслеживается по новым правилам
-		return nil
-	})
-
-	return err
+	return nil
 }
 
 func (i *Implementation) ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error) {
@@ -313,7 +239,7 @@ func (i *Implementation) DeleteHabit(ctx context.Context, username string, habit
 			return fmt.Errorf("i.timeManager.GetCurrentOffset: %w", err)
 		}
 		if currentOffset != 0 {
-			return fmt.Errorf("can't delete habit from future")
+			return ErrDeleteHabitFromFuture
 		}
 
 		_, err = i.userUc.GetUserByUsername(ctx, username)

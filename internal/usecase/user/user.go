@@ -29,6 +29,7 @@ type UseCase interface {
 }
 
 type Storage interface {
+	GetUserByEmail(ctx context.Context, email string) (entities.User, error)
 	GetUserByUsername(ctx context.Context, username string) (entities.User, error)
 	CreateUser(ctx context.Context, user entities.RegisterUser) error
 	AddToken(ctx context.Context, token entities.Token) error
@@ -58,6 +59,14 @@ func (i *Implementation) GetUserByUsername(ctx context.Context, username string)
 
 func (i *Implementation) RegisterUser(ctx context.Context, user entities.RegisterUser) error {
 	_, err := i.storage.GetUserByUsername(ctx, user.Name)
+	if err != nil {
+		if !errors.Is(err, storage.ErrNotFound) {
+			return fmt.Errorf("i.storage.GetUserByUsername: %w", err)
+		}
+	} else {
+		return ErrUserAlreadyExists
+	}
+	_, err = i.storage.GetUserByEmail(ctx, user.Email)
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
 			return fmt.Errorf("i.storage.GetUserByUsername: %w", err)

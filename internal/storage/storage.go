@@ -116,11 +116,38 @@ func (s *Storage) GetUserByUsername(ctx context.Context, username string) (entit
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-select username, email, password_hash from users where username = $1;
+select username,
+       email, 
+       password_hash 
+from users
+where username = $1;
 `
 	var user entities.User
 
 	err := pool.QueryRow(ctx, query, username).Scan(&user.Name, &user.Email, &user.Password)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.User{}, ErrNotFound
+		}
+		return entities.User{}, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return user, nil
+}
+
+func (s *Storage) GetUserByEmail(ctx context.Context, email string) (entities.User, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+select username,
+       email, 
+       password_hash 
+from users 
+where email = $1;
+`
+	var user entities.User
+
+	err := pool.QueryRow(ctx, query, email).Scan(&user.Name, &user.Email, &user.Password)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.User{}, ErrNotFound

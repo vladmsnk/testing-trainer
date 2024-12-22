@@ -34,12 +34,12 @@ func (r *CreateHabitRequest) Validate() error {
 			return fmt.Errorf("invalid frequency type")
 		}
 
-		if r.Goal.TimesPerFrequency == 0 {
-			return fmt.Errorf("goal times per frequency is required")
+		if r.Goal.TimesPerFrequency <= 0 {
+			return fmt.Errorf("goal times per frequency is required and should be greater then zero")
 		}
 
-		if r.Goal.TotalTrackingPeriods == 0 {
-			return fmt.Errorf("goal total tracking periods is required")
+		if r.Goal.TotalTrackingPeriods <= 0 {
+			return fmt.Errorf("goal total tracking periods is required and should be greater then zero")
 		}
 	}
 	return nil
@@ -59,12 +59,12 @@ func (r *UpdateHabitRequest) Validate() error {
 			return fmt.Errorf("invalid frequency type")
 		}
 
-		if r.Goal.TimesPerFrequency == 0 {
-			return fmt.Errorf("goal times per frequency is required")
+		if r.Goal.TimesPerFrequency <= 0 {
+			return fmt.Errorf("goal times per frequency is required and should be greater then zero")
 		}
 
-		if r.Goal.TotalTrackingPeriods == 0 {
-			return fmt.Errorf("goal total tracking periods is required")
+		if r.Goal.TotalTrackingPeriods <= 0 {
+			return fmt.Errorf("goal total tracking periods is required and should be greater then zero")
 		}
 	}
 
