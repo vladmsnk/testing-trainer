@@ -11,7 +11,7 @@ import (
 
 const (
 	pathToConfig  = "./etc/config.yaml"
-	pathToEnvFile = "./etc/dev.env"
+	pathToEnvFile = "./etc/config.env"
 )
 
 type Config struct {
