@@ -1,4 +1,4 @@
-package progress
+package progress_adder
 
 import (
 	"context"
@@ -27,7 +27,6 @@ var (
 )
 
 func TestGetHabitProgress(t *testing.T) {
-
 	var (
 		ctx      = context.Background()
 		username = "username"
@@ -47,12 +46,19 @@ func TestGetHabitProgress(t *testing.T) {
 		}
 
 		progress = entities.Progress{
+			Id:                    1,
 			TotalCompletedPeriods: 10,
 			TotalSkippedPeriods:   0,
 			TotalCompletedTimes:   20,
 			MostLongestStreak:     10,
 			CurrentStreak:         10,
 			Username:              username,
+		}
+
+		snapshot = entities.ProgressSnapshot{
+			ProgressID: int64(progress.Id),
+			Username:   username,
+			GoalID:     goal.Id,
 		}
 
 		expectedResult = entities.ProgressWithGoal{
@@ -68,56 +74,20 @@ func TestGetHabitProgress(t *testing.T) {
 		mockStorage, mockUserUc, mockTx, mockTime := initFunc(t)
 
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
+
 		mockTime.On("GetCurrentTime", ctx, username).Return(currentTime, nil)
+
 		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
-		mockStorage.On("GetProgressByTime", ctx, 1, username, currentTime).Return(progress, nil)
+
+		mockStorage.On("GetCurrentSnapshot", ctx, username, goal.Id, currentTime).Return(snapshot, nil)
+
+		mockStorage.On("GetProgressByID", ctx, snapshot.ProgressID).Return(progress, nil)
 
 		progressUC := New(mockUserUc, mockStorage, mockTx, mockTime)
 
 		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
 		require.Nil(t, err)
 		require.Equal(t, expectedResult, habitProgress)
-	})
-
-	t.Run("success get current progress", func(t *testing.T) {
-		t.Parallel()
-
-		mockStorage, mockUserUc, mockTx, mockTime := initFunc(t)
-		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
-		mockTime.On("GetCurrentTime", ctx, username).Return(currentTime, nil)
-		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
-		mockStorage.On("GetProgressByTime", ctx, 1, username, currentTime).Return(entities.Progress{}, storage.ErrNotFound)
-		mockStorage.On("GetCurrentProgress", ctx, 1).Return(progress, nil)
-		progressUC := New(mockUserUc, mockStorage, mockTx, mockTime)
-
-		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
-		require.Nil(t, err)
-		require.Equal(t, expectedResult, habitProgress)
-	})
-
-	t.Run("success get empty progress", func(t *testing.T) {
-		t.Parallel()
-
-		expectedResult = entities.ProgressWithGoal{
-			Progress: entities.Progress{
-				Username: username,
-			},
-			Goal:  goal,
-			Habit: habit,
-		}
-
-		mockStorage, mockUserUc, mockTx, mockTime := initFunc(t)
-		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
-		mockTime.On("GetCurrentTime", ctx, username).Return(currentTime, nil)
-		mockStorage.On("GetHabitById", ctx, username, habitId).Return(habit, nil)
-		mockStorage.On("GetProgressByTime", ctx, 1, username, currentTime).Return(entities.Progress{}, storage.ErrNotFound)
-		mockStorage.On("GetCurrentProgress", ctx, 1).Return(entities.Progress{}, storage.ErrNotFound)
-		progressUC := New(mockUserUc, mockStorage, mockTx, mockTime)
-
-		habitProgress, err := progressUC.GetHabitProgress(ctx, username, habitId)
-		require.Nil(t, err)
-		require.Equal(t, expectedResult, habitProgress)
-
 	})
 
 	t.Run("user not found", func(t *testing.T) {
@@ -233,6 +203,12 @@ func TestAddHabitProgress(t *testing.T) {
 			CurrentStreak:         10,
 		}
 
+		snapshot := entities.ProgressSnapshot{
+			ProgressID: int64(currentProgress.Id),
+			GoalID:     goal.Id,
+			Username:   username,
+		}
+
 		mockStorage, mockUserUc, mockTransactor, mockTime := initFunc(t)
 
 		mockTransactor.On("RunRepeatableRead", ctx, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
@@ -245,13 +221,13 @@ func TestAddHabitProgress(t *testing.T) {
 		mockUserUc.On("GetUserByUsername", ctx, username).Return(entities.User{}, nil)
 		mockStorage.On("GetHabitGoal", ctx, habitId).Return(goal, nil)
 
-		mockStorage.On("GetProgressByTime", ctx, 1, username, currentTime).Return(entities.Progress{}, storage.ErrNotFound)
-		mockStorage.On("GetCurrentProgress", ctx, 1).Return(currentProgress, nil)
+		mockStorage.On("GetCurrentSnapshot", ctx, username, goal.Id, currentTime).Return(snapshot, nil)
+		mockStorage.On("GetProgressByID", ctx, snapshot.ProgressID).Return(currentProgress, nil)
 
 		mockStorage.On("GetPreviousPeriodExecutionCount", ctx, goal, currentTime).Return(2, nil)
 		mockStorage.On("GetCurrentPeriodExecutionCount", ctx, goal, currentTime).Return(0, nil)
 
-		mockStorage.On("AddHabitProgress", ctx, goal.Id, currentTime).Return(nil)
+		mockStorage.On("AddProgressLog", ctx, goal.Id, currentTime).Return(nil)
 		mockStorage.On("UpdateProgressByID", ctx, updatedProgress).Return(nil)
 
 		progressUC := New(mockUserUc, mockStorage, mockTransactor, mockTime)

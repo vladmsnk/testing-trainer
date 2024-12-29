@@ -1,8 +1,4 @@
-//go:generate mockery --dir . --name Storage --structname MockStorage --filename storage_mock.go --output . --outpkg=progress
-//go:generate mockery --dir . --name UserUseCase --structname MockUserUseCase --filename user_mock.go --output . --outpkg=progress
-//go:generate mockery --dir . --name Transactor --structname MockTransactor --filename transactor_mock.go --output . --outpkg=progress
-//go:generate mockery --dir . --name TimeManager --structname MockTimeManager --filename time_manager_mock.go --output . --outpkg=progress
-package progress
+package progress_getter
 
 import (
 	"context"
@@ -18,14 +14,12 @@ import (
 var (
 	ErrHabitNotFound = fmt.Errorf("habit not found")
 	ErrGoalNotFound  = fmt.Errorf("goal not found")
-	ErrGoalCompleted = fmt.Errorf("goal is already completed")
 )
 
-type UseCase interface {
+type ProgressGetter interface {
+	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
 	GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error)
-	AddHabitProgress(ctx context.Context, username string, habitId int) error
 	GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error)
-	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 }
 
 type UserUseCase interface {
@@ -37,26 +31,16 @@ type Transactor interface {
 }
 
 type Storage interface {
-	AddProgressLog(ctx context.Context, goalId int, createdAt time.Time) error
-	GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error)
 	GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error)
-	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
-	SetGoalCompleted(ctx context.Context, goalId int) error
-	GetPreviousPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error)
+
 	GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error)
-	SetGoalNextCheckDate(ctx context.Context, goalId int, nextCheckDate time.Time) error
 	GetAllUserHabitsWithGoals(ctx context.Context, username string) ([]entities.Habit, error)
 
-	//V2
 	CreateProgress(ctx context.Context, progress entities.Progress) (int64, error)
-	UpdateProgressByID(ctx context.Context, progress entities.Progress) error
 	GetMostRecentSnapshot(ctx context.Context, username string, goalID int, currentTime time.Time) (entities.ProgressSnapshot, error)
 	GetCurrentSnapshot(ctx context.Context, username string, goalID int, currentTime time.Time) (entities.ProgressSnapshot, error)
 	GetProgressByID(ctx context.Context, progressID int64) (entities.Progress, error)
 	CreateSnapshot(ctx context.Context, snapshot entities.ProgressSnapshot) error
-
-	GetFutureSnapshots(ctx context.Context, username string, goalID int, currentTime time.Time) ([]entities.ProgressSnapshot, error)
-	GetCurrentDayExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error)
 }
 
 type TimeManager interface {
@@ -70,7 +54,7 @@ type Implementation struct {
 	timeManager TimeManager
 }
 
-func New(userUc UserUseCase, storage Storage, transactor Transactor, timeManager TimeManager) *Implementation {
+func NewGetter(userUc UserUseCase, storage Storage, transactor Transactor, timeManager TimeManager) *Implementation {
 	return &Implementation{
 		userUc:      userUc,
 		storage:     storage,
@@ -115,99 +99,6 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username string, 
 		Goal:     *habitGoal,
 		Habit:    habit,
 	}, nil
-}
-
-func (i *Implementation) AddHabitProgress(ctx context.Context, username string, habitId int) error {
-	err := i.transactor.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
-		currentTime, err := i.timeManager.GetCurrentTime(ctx, username)
-		if err != nil {
-			return fmt.Errorf("i.timeManager.GetCurrentTime: %w", err)
-		}
-
-		_, err = i.userUc.GetUserByUsername(ctx, username)
-		if err != nil {
-			return fmt.Errorf("i.userUc.GetUserByUsername: %w", err)
-		}
-
-		goal, err := i.storage.GetHabitGoal(ctx, habitId)
-		if err != nil {
-			if errors.Is(err, storage.ErrNotFound) {
-				return ErrHabitNotFound
-			}
-			return fmt.Errorf("i.storage.GetHabitGoal: %w", err)
-		}
-
-		if goal.IsCompleted {
-			return ErrGoalCompleted
-		}
-
-		currentProgress, err := i.GetProgressBySnapshot(ctx, goal.Id, username, currentTime)
-		if err != nil {
-			return fmt.Errorf("i.GetProgressBySnapshot: %w", err)
-		}
-
-		lastPeriodExecutionCount, err := i.storage.GetPreviousPeriodExecutionCount(ctx, goal, currentTime)
-		if err != nil {
-			return fmt.Errorf("i.storage.GetPreviousDayExecutionCount: %w", err)
-		}
-
-		currentExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, goal, currentTime)
-		if err != nil {
-			return fmt.Errorf("i.storage.GetTodayExecutionCount: %w", err)
-		}
-
-		currentExecutionCount += 1
-		updatedProgress := currentProgress
-		goalIsCompleted := false
-
-		updatedProgress.TotalCompletedTimes = currentProgress.TotalCompletedTimes + 1
-
-		// Check if the goal is completed for the current period
-		if currentExecutionCount == goal.TimesPerFrequency {
-			updatedProgress.TotalCompletedPeriods = currentProgress.TotalCompletedPeriods + 1
-
-			// Streak logic: reset or increment the streak
-			if lastPeriodExecutionCount >= goal.TimesPerFrequency {
-				updatedProgress.CurrentStreak = currentProgress.CurrentStreak + 1
-			} else {
-				updatedProgress.CurrentStreak = 1
-			}
-
-			if updatedProgress.CurrentStreak > currentProgress.MostLongestStreak {
-				updatedProgress.MostLongestStreak = updatedProgress.CurrentStreak
-			}
-
-			if updatedProgress.TotalCompletedPeriods == goal.TotalTrackingPeriods {
-				goalIsCompleted = true
-			}
-		}
-
-		err = i.storage.AddProgressLog(ctx, goal.Id, currentTime)
-		if err != nil {
-			return fmt.Errorf("i.storage.AddHabitProgress: %w", err)
-		}
-
-		err = i.storage.UpdateProgressByID(ctx, updatedProgress)
-		if err != nil {
-			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
-		}
-
-		err = i.RecalculateFutureProgressesByGoalUpdate(ctx, username, goal, goal, currentTime)
-		if err != nil {
-			return fmt.Errorf("i.RecalculateFutureProgressesByGoalUpdate: %w", err)
-		}
-		// add record to table execution_times_per_period
-
-		if goalIsCompleted {
-			err := i.storage.SetGoalCompleted(ctx, goal.Id)
-			if err != nil {
-				return fmt.Errorf("i.storage.SetGoalCompleted: %w", err)
-			}
-		}
-		return nil
-	})
-
-	return err
 }
 
 func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error) {
@@ -337,79 +228,4 @@ func (i *Implementation) GetProgressBySnapshot(ctx context.Context, goalID int, 
 	}
 
 	return progress, nil
-}
-
-func (i *Implementation) RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error {
-	baseProgress, err := i.GetProgressBySnapshot(ctx, prevGoal.Id, username, currentTime)
-	if err != nil {
-		return fmt.Errorf("i.GetProgressBySnapshot: %w", err)
-	}
-
-	currentPeriodExecutionCount, err := i.storage.GetCurrentPeriodExecutionCount(ctx, prevGoal, currentTime)
-	if err != nil {
-		return fmt.Errorf("i.storage.GetCurrentPeriodExecutionCount: %w", err)
-	}
-
-	if currentPeriodExecutionCount < newGoal.TimesPerFrequency && currentPeriodExecutionCount >= prevGoal.TimesPerFrequency && baseProgress.TotalCompletedPeriods > 0 {
-		baseProgress.TotalCompletedPeriods -= 1
-		if baseProgress.CurrentStreak == baseProgress.MostLongestStreak {
-			baseProgress.MostLongestStreak -= 1
-			baseProgress.CurrentStreak -= 1
-		} else {
-			baseProgress.CurrentStreak -= 1
-		}
-
-		err = i.storage.UpdateProgressByID(ctx, baseProgress)
-		if err != nil {
-			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
-		}
-	}
-
-	snapshots, err := i.storage.GetFutureSnapshots(ctx, username, prevGoal.Id, currentTime)
-	if err != nil {
-		return fmt.Errorf("i.storage.GetFutureSnapshots: %w", err)
-	}
-
-	var baseProgresses []entities.Progress
-
-	for j, snapshot := range snapshots {
-		var basep entities.Progress
-
-		if j == 0 {
-			basep = baseProgress.DeepCopy()
-		} else {
-			basep = baseProgresses[j-1].DeepCopy()
-		}
-
-		currentDayExecutionCount, err := i.storage.GetCurrentDayExecutionCount(ctx, prevGoal, snapshot.CreatedAt)
-		if err != nil {
-			return fmt.Errorf("i.storage.GetCurrentDayExecutionCount: %w", err)
-		}
-
-		currentPeriodExecCnt, err := i.storage.GetCurrentPeriodExecutionCount(ctx, prevGoal, snapshot.CreatedAt)
-		if err != nil {
-			return fmt.Errorf("i.storage.GetCurrentPeriodExecutionCount: %w", err)
-		}
-
-		if currentPeriodExecCnt < newGoal.TimesPerFrequency {
-			basep.TotalCompletedTimes += currentDayExecutionCount
-		} else if currentPeriodExecCnt == newGoal.TimesPerFrequency {
-			basep.TotalCompletedTimes += currentDayExecutionCount
-			basep.TotalCompletedPeriods += 1
-			basep.CurrentStreak += 1
-			if basep.CurrentStreak > basep.MostLongestStreak {
-				basep.MostLongestStreak = basep.CurrentStreak
-			}
-		}
-
-		basep.Id = int(snapshot.ProgressID)
-		baseProgresses = append(baseProgresses, basep)
-
-		err = i.storage.UpdateProgressByID(ctx, basep)
-		if err != nil {
-			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
-		}
-	}
-
-	return nil
 }

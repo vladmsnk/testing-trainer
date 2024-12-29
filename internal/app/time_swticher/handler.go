@@ -2,10 +2,10 @@ package time_swticher
 
 import (
 	"net/http"
-	"testing_trainer/utils/token"
 
 	"github.com/gin-gonic/gin"
 	"testing_trainer/internal/usecase/time_switcher"
+	"testing_trainer/utils/token"
 )
 
 type Handler struct {
@@ -30,7 +30,7 @@ func NewHandler(r *gin.RouterGroup, tsu time_switcher.UseCase) *Handler {
 // @Tags time
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -58,7 +58,7 @@ func (h *Handler) ResetToCurrentDay(c *gin.Context) {
 // @Tags time
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -88,7 +88,7 @@ func (h *Handler) GetCurrentTime(c *gin.Context) {
 // @Tags time
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"

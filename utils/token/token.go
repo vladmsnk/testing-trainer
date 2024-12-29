@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	keyEnvTokenLifeSpan   = "TOKEN_HOUR_LIFESPAN"
+	keyEnvTokenLifeSpan   = "TOKEN_MINUTE_LIFESPAN"
 	keyEnvRefreshLifeSpan = "REFRESH_HOUR_LIFESPAN"
 	KeyEnvApiSecret       = "API_SECRET"
 	KeyEnvRefreshSecret   = "REFRESH_SECRET"
@@ -45,18 +45,18 @@ func ExtractUsernameFromToken(c *gin.Context) (string, error) {
 func GenerateTokens(username string) (string, string, error) {
 	accessTokenLifespanStr := os.Getenv(keyEnvTokenLifeSpan)
 	if accessTokenLifespanStr == "" {
-		return "", "", fmt.Errorf("TOKEN_HOUR_LIFESPAN environment variable not set")
+		return "", "", fmt.Errorf("TOKEN_MINUTE_LIFESPAN environment variable not set")
 	}
 
 	accessTokenLifespan, err := strconv.Atoi(accessTokenLifespanStr)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid TOKEN_HOUR_LIFESPAN: %w", err)
+		return "", "", fmt.Errorf("invalid TOKEN_MINUTE_LIFESPAN: %w", err)
 	}
 
 	accessClaims := jwt.MapClaims{
 		"authorized": true,
 		"username":   username,
-		"exp":        time.Now().Add(time.Hour * time.Duration(accessTokenLifespan)).Unix(), // Access token expiry
+		"exp":        time.Now().Add(time.Minute * time.Duration(accessTokenLifespan)).Unix(), // Access token expiry
 	}
 
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)

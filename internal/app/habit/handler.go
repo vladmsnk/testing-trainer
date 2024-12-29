@@ -44,7 +44,7 @@ func NewHabitHandler(r *gin.RouterGroup, uc UseCase) {
 // @Accept json
 // @Produce json
 // @Param requestBody body CreateHabitRequest true "Create habit"
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
 // @Failure 500 {string} string "Internal Server Error"
@@ -88,7 +88,7 @@ func (h *Handler) CreateHabit(c *gin.Context) {
 // @Tags habit
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {array} ListUserHabitsResponse "List of user habits"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
@@ -115,7 +115,7 @@ func (h *Handler) ListUserHabits(c *gin.Context) {
 // @Tags habit
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {array} ListUserHabitsResponse "List of completed user habits"
 // @Failure 401 {string} string "Unauthorized"
 // @Failure 500 {string} string "Internal Server Error"
@@ -143,7 +143,7 @@ func (h *Handler) ListUserCompletedHabits(c *gin.Context) {
 // @Tags habit
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Param requestBody body UpdateHabitRequest true "Update habit"
 // @Success 200 {string} string "Habit updated"
 // @Failure 400 {string} string "Bad Request"
@@ -203,7 +203,7 @@ func (h *Handler) UpdateHabit(c *gin.Context) {
 // @Tags habit
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Param habitId path string true "Habit ID"
 // @Success 200 {string} string "Habit deleted"
 // @Failure 400 {string} string "Bad Request"

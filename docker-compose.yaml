@@ -42,7 +42,7 @@ services:
     restart: unless-stopped
     hostname: server
     environment:
-      TOKEN_HOUR_LIFESPAN: 24
+      TOKEN_MINUTE_LIFESPAN: 24
       REFRESH_HOUR_LIFESPAN: 48
       API_SECRET: api-secret
       REFRESH_SECRET: refresh-secret

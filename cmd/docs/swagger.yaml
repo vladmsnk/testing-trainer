@@ -1,3 +1,4 @@
+basePath: /api/v1
 definitions:
   auth.LoginRequest:
     properties:
@@ -37,7 +38,7 @@ definitions:
         example: Drink 2 liters of water every day
         type: string
       goal:
-        $ref: '#/definitions/habit.Goal'
+        $ref: '#/definitions/habit.UpdateGoal'
     type: object
   habit.Goal:
     properties:
@@ -83,16 +84,41 @@ definitions:
         example: 1
         type: integer
     type: object
+  habit.UpdateGoal:
+    properties:
+      frequency_type:
+        description: daily, weekly, monthly
+        enum:
+        - daily
+        - weekly
+        - monthly
+        example: daily
+        type: string
+      times_per_frequency:
+        description: How many times to complete within each frequency (e.g., per day
+          or per week)
+        example: 1
+        type: integer
+      total_tracking_periods:
+        example: 15
+        type: integer
+    type: object
   habit.UpdateHabitRequest:
     properties:
       description:
         example: Drink 2 liters of water every day
         type: string
       goal:
-        $ref: '#/definitions/habit.Goal'
+        $ref: '#/definitions/habit.UpdateGoal'
       id:
         example: 1
         type: integer
+    type: object
+  main.VersionResponse:
+    properties:
+      version:
+        example: 1.0.0
+        type: string
     type: object
 info:
   contact: {}
@@ -206,12 +232,6 @@ paths:
       consumes:
       - application/json
       description: Returns the current time
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -227,6 +247,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: get current time endpoint
       tags:
       - time
@@ -235,12 +257,6 @@ paths:
       consumes:
       - application/json
       description: Switches to the next day
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -256,6 +272,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: switch to next day endpoint
       tags:
       - time
@@ -264,12 +282,6 @@ paths:
       consumes:
       - application/json
       description: Resets the time to the current day
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -285,6 +297,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: reset time to current day endpoint
       tags:
       - time
@@ -293,12 +307,6 @@ paths:
       consumes:
       - application/json
       description: Lists all habits for the authenticated user
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -316,6 +324,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: list user habits endpoint
       tags:
       - habit
@@ -330,11 +340,6 @@ paths:
         required: true
         schema:
           $ref: '#/definitions/habit.CreateHabitRequest'
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -350,6 +355,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: create habit endpoint
       tags:
       - habit
@@ -358,11 +365,6 @@ paths:
       - application/json
       description: Updates a habit for the authenticated user
       parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Update habit
         in: body
         name: requestBody
@@ -384,6 +386,8 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: update habit endpoint
       tags:
       - habit
@@ -393,11 +397,6 @@ paths:
       - application/json
       description: Deletes a habit for the authenticated user
       parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Habit ID
         in: path
         name: habitId
@@ -418,6 +417,8 @@ paths:
           description: Unauthorized
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: delete habit endpoint
       tags:
       - habit
@@ -426,12 +427,6 @@ paths:
       consumes:
       - application/json
       description: Lists all completed habits for the authenticated user
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -449,6 +444,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: list users completed habits endpoint
       tags:
       - habit
@@ -458,11 +455,6 @@ paths:
       - application/json
       description: Get progress of the habit
       parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Habit ID
         in: path
         name: habitId
@@ -483,6 +475,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: get progress endpoint
       tags:
       - progress
@@ -491,11 +485,6 @@ paths:
       - application/json
       description: Adds progress to the habit
       parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: Habit ID
         in: path
         name: habitId
@@ -516,6 +505,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: add progress endpoint
       tags:
       - progress
@@ -524,12 +515,6 @@ paths:
       consumes:
       - application/json
       description: Get reminder for the user
-      parameters:
-      - description: Bearer
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -541,6 +526,8 @@ paths:
           description: Internal Server Error
           schema:
             type: string
+      security:
+      - ApiKeyAuth: []
       summary: get reminder endpoint
       tags:
       - progress
@@ -553,12 +540,15 @@ paths:
       - application/json
       responses:
         "200":
-          description: OK
+          description: Successful response
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/main.VersionResponse'
       summary: Get API version
       tags:
       - version
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

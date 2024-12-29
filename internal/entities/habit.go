@@ -108,15 +108,15 @@ func (g Goal) GetCurrentPeriod(currentTime time.Time) int {
 	switch g.FrequencyType {
 	case Daily:
 		// Calculate the number of full days since createdAt
-		return int(time.Since(g.StartTrackingAt).Hours()/24) + int(dayOffset)
+		return int(dayOffset)
 
 	case Weekly:
 		// Calculate the number of full weeks since createdAt
-		return int(time.Since(g.StartTrackingAt).Hours()/(24*7)) + int(dayOffset/7)
+		return int(dayOffset / (24 * 7))
 
 	case Monthly:
 		// Calculate the number of full 31-day months since createdAt
-		daysSinceCreated := int(time.Since(g.StartTrackingAt).Hours()/24) + int(dayOffset)
+		daysSinceCreated := int(dayOffset)
 		return daysSinceCreated / 31 // Each "month" is treated as 31 days
 
 	default:

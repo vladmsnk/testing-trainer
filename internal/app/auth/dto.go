@@ -25,8 +25,23 @@ func (r *RegisterRequest) Validate() error {
 		return err
 	}
 
-	if len(r.Password) < 8 {
-		return errors.New("password must be at least 8 characters long")
+	if err := validatePassword(r.Password); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validatePassword(password string) error {
+	if len(password) < 5 || len(password) > 40 {
+		return errors.New("password must be between 5 and 40 characters long")
+	}
+
+	hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(password)
+	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
+
+	if !hasLetter || !hasNumber {
+		return errors.New("password must contain at least one letter and one number")
 	}
 
 	return nil
@@ -40,8 +55,8 @@ func validateUsername(username string) error {
 	}
 	//between 3 and 20 characters long
 
-	if len(username) < 3 || len(username) > 20 {
-		return errors.New("username must be between 3 and 20 characters long")
+	if len(username) < 3 || len(username) > 30 {
+		return errors.New("username must be between 3 and 30 characters long")
 	}
 
 	return nil

@@ -11,12 +11,19 @@ import (
 	"testing_trainer/internal/storage/transactor"
 	"testing_trainer/internal/usecase/goals_checker"
 	"testing_trainer/internal/usecase/habit"
-	"testing_trainer/internal/usecase/progress"
+	"testing_trainer/internal/usecase/progress_adder"
+	"testing_trainer/internal/usecase/progress_getter"
+	"testing_trainer/internal/usecase/progress_recalculator"
 	"testing_trainer/internal/usecase/time_manager"
 	"testing_trainer/internal/usecase/time_switcher"
 	"testing_trainer/internal/usecase/user"
 	"testing_trainer/scripts/migrations"
 )
+
+// @BasePath  /api/v1
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
 
 func main() {
 	defer func() {
@@ -52,11 +59,13 @@ func main() {
 	var (
 		timeManager = time_manager.New(store)
 
-		authUc    = user.New(store)
-		processUc = progress.New(authUc, store, tx, timeManager)
+		authUc               = user.New(store)
+		progressGetter       = progress_getter.NewGetter(authUc, store, tx, timeManager)
+		progressRecalculator = progress_recalculator.NewRecalculator(authUc, store, progressGetter, tx, timeManager)
+		processUc            = progress_adder.New(authUc, store, progressGetter, tx, timeManager, progressRecalculator)
 
-		habitUc        = habit.New(store, authUc, tx, timeManager, processUc)
-		goalsCheckerUC = goals_checker.NewChecker(store, tx, timeManager, processUc)
+		habitUc        = habit.New(store, authUc, tx, timeManager, progressGetter, progressRecalculator)
+		goalsCheckerUC = goals_checker.NewChecker(store, tx, timeManager, progressGetter)
 		timeSwitcherUC = time_switcher.New(timeManager)
 	)
 
@@ -69,7 +78,7 @@ func main() {
 	}()
 	scheduler.Start()
 
-	router := setupRouter(authUc, habitUc, processUc, timeSwitcherUC)
+	router := setupRouter(authUc, habitUc, processUc, progressGetter, progressRecalculator, timeSwitcherUC)
 	log.Println("Swagger is available on http://" + config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port) + "/swagger/index.html")
 	err = router.Run(config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port))
 	if err != nil {

@@ -18,14 +18,14 @@ func AuthMiddleware(authUc user.UseCase) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		err := token.TokenValidInContext(c)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "Unauthorized")
+			c.String(http.StatusUnauthorized, err.Error())
 			c.Abort()
 			return
 		}
 
 		tokenUserName, err := token.ExtractUsernameFromToken(c)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "Unauthorized")
+			c.String(http.StatusUnauthorized, err.Error())
 			c.Abort()
 			return
 		}
@@ -34,7 +34,7 @@ func AuthMiddleware(authUc user.UseCase) gin.HandlerFunc {
 
 		tokenEntityFromStorage, err := authUc.GetToken(c, tokenUserName)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "Unauthorized")
+			c.String(http.StatusUnauthorized, err.Error())
 			c.Abort()
 			return
 		}

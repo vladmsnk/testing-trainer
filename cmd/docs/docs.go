@@ -177,6 +177,11 @@ const docTemplate = `{
         },
         "/time/current-time": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Returns the current time",
                 "consumes": [
                     "application/json"
@@ -188,15 +193,6 @@ const docTemplate = `{
                     "time"
                 ],
                 "summary": "get current time endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -221,6 +217,11 @@ const docTemplate = `{
         },
         "/time/next-day": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Switches to the next day",
                 "consumes": [
                     "application/json"
@@ -232,15 +233,6 @@ const docTemplate = `{
                     "time"
                 ],
                 "summary": "switch to next day endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -265,6 +257,11 @@ const docTemplate = `{
         },
         "/time/reset-time": {
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Resets the time to the current day",
                 "consumes": [
                     "application/json"
@@ -276,15 +273,6 @@ const docTemplate = `{
                     "time"
                 ],
                 "summary": "reset time to current day endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -309,6 +297,11 @@ const docTemplate = `{
         },
         "/tracker/habits": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Lists all habits for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -320,15 +313,6 @@ const docTemplate = `{
                     "habit"
                 ],
                 "summary": "list user habits endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "List of user habits",
@@ -354,6 +338,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Updates a habit for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -366,13 +355,6 @@ const docTemplate = `{
                 ],
                 "summary": "update habit endpoint",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "description": "Update habit",
                         "name": "requestBody",
@@ -405,6 +387,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Creates habit in the system",
                 "consumes": [
                     "application/json"
@@ -425,13 +412,6 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/habit.CreateHabitRequest"
                         }
-                    },
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {
@@ -458,6 +438,11 @@ const docTemplate = `{
         },
         "/tracker/habits/completed": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Lists all completed habits for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -469,15 +454,6 @@ const docTemplate = `{
                     "habit"
                 ],
                 "summary": "list users completed habits endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "List of completed user habits",
@@ -505,6 +481,11 @@ const docTemplate = `{
         },
         "/tracker/habits/{habitId}": {
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Deletes a habit for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -517,13 +498,6 @@ const docTemplate = `{
                 ],
                 "summary": "delete habit endpoint",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Habit ID",
@@ -556,6 +530,11 @@ const docTemplate = `{
         },
         "/tracker/progress/{habitId}": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get progress of the habit",
                 "consumes": [
                     "application/json"
@@ -568,13 +547,6 @@ const docTemplate = `{
                 ],
                 "summary": "get progress endpoint",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Habit ID",
@@ -605,6 +577,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Adds progress to the habit",
                 "consumes": [
                     "application/json"
@@ -617,13 +594,6 @@ const docTemplate = `{
                 ],
                 "summary": "add progress endpoint",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "Habit ID",
@@ -656,6 +626,11 @@ const docTemplate = `{
         },
         "/tracker/reminder": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Get reminder for the user",
                 "consumes": [
                     "application/json"
@@ -667,15 +642,6 @@ const docTemplate = `{
                     "progress"
                 ],
                 "summary": "get reminder endpoint",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -707,12 +673,9 @@ const docTemplate = `{
                 "summary": "Get API version",
                 "responses": {
                     "200": {
-                        "description": "OK",
+                        "description": "Successful response",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/main.VersionResponse"
                         }
                     }
                 }
@@ -775,7 +738,7 @@ const docTemplate = `{
                     "example": "Drink 2 liters of water every day"
                 },
                 "goal": {
-                    "$ref": "#/definitions/habit.Goal"
+                    "$ref": "#/definitions/habit.UpdateGoal"
                 }
             }
         },
@@ -839,6 +802,30 @@ const docTemplate = `{
                 }
             }
         },
+        "habit.UpdateGoal": {
+            "type": "object",
+            "properties": {
+                "frequency_type": {
+                    "description": "daily, weekly, monthly",
+                    "type": "string",
+                    "enum": [
+                        "daily",
+                        "weekly",
+                        "monthly"
+                    ],
+                    "example": "daily"
+                },
+                "times_per_frequency": {
+                    "description": "How many times to complete within each frequency (e.g., per day or per week)",
+                    "type": "integer",
+                    "example": 1
+                },
+                "total_tracking_periods": {
+                    "type": "integer",
+                    "example": 15
+                }
+            }
+        },
         "habit.UpdateHabitRequest": {
             "type": "object",
             "properties": {
@@ -847,13 +834,29 @@ const docTemplate = `{
                     "example": "Drink 2 liters of water every day"
                 },
                 "goal": {
-                    "$ref": "#/definitions/habit.Goal"
+                    "$ref": "#/definitions/habit.UpdateGoal"
                 },
                 "id": {
                     "type": "integer",
                     "example": 1
                 }
             }
+        },
+        "main.VersionResponse": {
+            "type": "object",
+            "properties": {
+                "version": {
+                    "type": "string",
+                    "example": "1.0.0"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "ApiKeyAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
@@ -862,7 +865,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "",
 	Host:             "",
-	BasePath:         "",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "",
 	Description:      "",

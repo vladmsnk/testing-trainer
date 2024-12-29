@@ -55,11 +55,3 @@ func toEntityProgress(daoProgress userProgress) entities.Progress {
 		CurrentStreak:         daoProgress.currentStreak,
 	}
 }
-
-func toEntitySnapshot(daoSnapshot snapshot) entities.ProgressSnapshot {
-	return entities.ProgressSnapshot{
-		Username:           daoSnapshot.username,
-		CurrentProgressIDs: daoSnapshot.currentProgressIDs.Elements,
-		CreatedAt:          daoSnapshot.createdAt,
-	}
-}

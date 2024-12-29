@@ -28,9 +28,9 @@ var (
 type UseCase interface {
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
-	UpdateHabit(ctx context.Context, username string, habit entities.Habit) error
 	ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	DeleteHabit(ctx context.Context, username string, habitId int) error
+	UpdateHabitV2(ctx context.Context, username string, habit entities.Habit) error
 }
 
 type UserUseCase interface {
@@ -43,6 +43,9 @@ type Transactor interface {
 
 type ProgressGetter interface {
 	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
+}
+
+type ProgressRecalculator interface {
 	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 }
 
@@ -50,16 +53,11 @@ type Storage interface {
 	ArchiveHabitById(ctx context.Context, habitId int) error
 	CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error)
 	GetHabitById(ctx context.Context, username string, habitId int) (entities.Habit, error)
-	GetHabitGoal(ctx context.Context, habitId int) (entities.Goal, error)
 	ListUserHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error)
 	DeactivateGoalByID(ctx context.Context, id int) error
-	CreateGoal(ctx context.Context, habitID int, goal entities.Goal) (int, error)
-	GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error)
 	UpdateHabit(ctx context.Context, habit entities.Habit) error
-	GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error)
 	UpdateGoal(ctx context.Context, goal entities.Goal) error
-	UpdateProgressByID(ctx context.Context, progress entities.Progress) error
 }
 
 type TimeManager interface {
@@ -68,15 +66,30 @@ type TimeManager interface {
 }
 
 type Implementation struct {
-	storage         Storage
-	userUc          UserUseCase
-	tx              Transactor
-	timeManager     TimeManager
-	progressManager ProgressGetter
+	storage              Storage
+	userUc               UserUseCase
+	tx                   Transactor
+	timeManager          TimeManager
+	progressManager      ProgressGetter
+	progressRecalculator ProgressRecalculator
 }
 
-func New(storage Storage, userUc UserUseCase, tx Transactor, timeManager TimeManager, progressManager ProgressGetter) *Implementation {
-	return &Implementation{storage: storage, userUc: userUc, tx: tx, timeManager: timeManager, progressManager: progressManager}
+func New(
+	storage Storage,
+	userUc UserUseCase,
+	tx Transactor,
+	timeManager TimeManager,
+	progressManager ProgressGetter,
+	progressRecalculator ProgressRecalculator,
+) *Implementation {
+	return &Implementation{
+		storage:              storage,
+		userUc:               userUc,
+		tx:                   tx,
+		timeManager:          timeManager,
+		progressManager:      progressManager,
+		progressRecalculator: progressRecalculator,
+	}
 }
 
 func (i *Implementation) CreateHabit(ctx context.Context, username string, habit entities.Habit) (int, error) {
@@ -108,6 +121,7 @@ func (i *Implementation) CreateHabit(ctx context.Context, username string, habit
 			nextCheckDate = time.Now().AddDate(0, 0, 7).Add(5 * time.Minute)
 		case entities.Monthly:
 			nextCheckDate = time.Now().AddDate(0, 1, 0).Add(5 * time.Minute)
+		default:
 		}
 
 		habit.Goal.StartTrackingAt = currentTime.UTC()
@@ -195,7 +209,7 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 				return fmt.Errorf("storage.UpdateGoal: %w", err)
 			}
 
-			err = i.progressManager.RecalculateFutureProgressesByGoalUpdate(ctx, username, *currentGoal, *newGoal, currentTime)
+			err = i.progressRecalculator.RecalculateFutureProgressesByGoalUpdate(ctx, username, *currentGoal, *newGoal, currentTime)
 			if err != nil {
 				return fmt.Errorf("progressManager.RecalculateFutureProgressesByGoalUpdate: %w", err)
 			}
@@ -205,10 +219,6 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 	})
 
 	return err
-}
-
-func (i *Implementation) UpdateHabit(ctx context.Context, username string, habit entities.Habit) error {
-	return nil
 }
 
 func (i *Implementation) ListUserCompletedHabits(ctx context.Context, username string) ([]entities.Habit, error) {

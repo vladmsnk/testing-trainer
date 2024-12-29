@@ -1,29 +1,26 @@
 package progress
 
 import (
-	"context"
 	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"testing_trainer/internal/entities"
-	"testing_trainer/internal/usecase/progress"
+	"testing_trainer/internal/usecase/progress_adder"
+	"testing_trainer/internal/usecase/progress_getter"
 	"testing_trainer/utils/token"
 )
 
 type Handler struct {
-	uc UseCase
+	progressUC    progress_adder.UseCase
+	progresGetter progress_getter.ProgressGetter
 }
 
-type UseCase interface {
-	GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error)
-	AddHabitProgress(ctx context.Context, username string, habitId int) error
-	GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error)
-}
-
-func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
-	h := Handler{uc: uc}
+func NewProgressHandler(r *gin.RouterGroup, uc progress_adder.UseCase, progresGetter progress_getter.ProgressGetter) {
+	h := Handler{
+		progressUC:    uc,
+		progresGetter: progresGetter,
+	}
 
 	r.POST("/progress/:habitId", h.AddProgress)
 	r.GET("/progress/:habitId", h.GetHabitProgress)
@@ -37,7 +34,7 @@ func NewProgressHandler(r *gin.RouterGroup, uc UseCase) {
 // @Tags progress
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Param habitId path string true "Habit ID"
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
@@ -62,13 +59,13 @@ func (h *Handler) AddProgress(c *gin.Context) {
 		return
 	}
 
-	err = h.uc.AddHabitProgress(c, username, habitId)
+	err = h.progressUC.AddHabitProgress(c, username, habitId)
 	if err != nil {
-		if errors.Is(err, progress.ErrGoalCompleted) {
+		if errors.Is(err, progress_adder.ErrGoalCompleted) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		if errors.Is(err, progress.ErrHabitNotFound) {
+		if errors.Is(err, progress_adder.ErrHabitNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -86,7 +83,7 @@ func (h *Handler) AddProgress(c *gin.Context) {
 // @Tags progress
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Param habitId path string true "Habit ID"
 // @Success 200 {string} ok
 // @Failure 400 {string} string "Bad Request"
@@ -111,13 +108,9 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 		return
 	}
 
-	progressWithGoal, err := h.uc.GetHabitProgress(c, username, habitId)
+	progressWithGoal, err := h.progresGetter.GetHabitProgress(c, username, habitId)
 	if err != nil {
-		if errors.Is(err, progress.ErrHabitNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-			return
-		}
-		if errors.Is(err, progress.ErrGoalNotFound) {
+		if errors.Is(err, progress_adder.ErrHabitNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
@@ -134,7 +127,7 @@ func (h *Handler) GetHabitProgress(c *gin.Context) {
 // @Tags progress
 // @Accept json
 // @Produce json
-// @Param Authorization header string true "Bearer"
+// @Security ApiKeyAuth
 // @Success 200 {string} ok
 // @Failure 500 {string} string "Internal Server Error"
 // @Router /tracker/reminder [get]
@@ -145,7 +138,7 @@ func (h *Handler) GetReminder(c *gin.Context) {
 		return
 	}
 
-	currentProgressForAllUserHabits, err := h.uc.GetCurrentProgressForAllUserHabits(c, username)
+	currentProgressForAllUserHabits, err := h.progresGetter.GetCurrentProgressForAllUserHabits(c, username)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "An error occurred while retrieving habit progress"})
 		return

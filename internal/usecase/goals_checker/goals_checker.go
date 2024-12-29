@@ -31,24 +31,24 @@ type TimeManager interface {
 	GetCurrentTime(ctx context.Context, username string) (time.Time, error)
 }
 
-type ProgressManager interface {
+type ProgressGetter interface {
 	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
 }
 
-func NewChecker(storage Storage, transactor Transactor, timeManager TimeManager, progressManager ProgressManager) Checker {
+func NewChecker(storage Storage, transactor Transactor, timeManager TimeManager, progressGetter ProgressGetter) Checker {
 	return &Implementation{
-		storage:         storage,
-		transactor:      transactor,
-		timeManager:     timeManager,
-		progressManager: progressManager,
+		storage:        storage,
+		transactor:     transactor,
+		timeManager:    timeManager,
+		progressGetter: progressGetter,
 	}
 }
 
 type Implementation struct {
-	storage         Storage
-	transactor      Transactor
-	timeManager     TimeManager
-	progressManager ProgressManager
+	storage        Storage
+	transactor     Transactor
+	timeManager    TimeManager
+	progressGetter ProgressGetter
 }
 
 var (
@@ -56,7 +56,6 @@ var (
 )
 
 func (i *Implementation) CheckGoals(ctx context.Context) error {
-	// для этого пользователя всегда возвращается текущее время
 	currentTime, err := i.timeManager.GetCurrentTime(ctx, goalsCheckerUser)
 	if err != nil {
 		return fmt.Errorf("i.timeManager.GetCurrentTime: %w", err)
@@ -69,7 +68,7 @@ func (i *Implementation) CheckGoals(ctx context.Context) error {
 
 	for _, goal := range goalsToCheck {
 		err := i.transactor.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
-			currentProgress, err := i.progressManager.GetProgressBySnapshot(ctxTX, goal.Id, goalsCheckerUser, currentTime)
+			currentProgress, err := i.progressGetter.GetProgressBySnapshot(ctxTX, goal.Id, goalsCheckerUser, currentTime)
 			if err != nil {
 				return fmt.Errorf("i.progressManager.GetProgressBySnapshot: %w", err)
 			}

@@ -16,13 +16,16 @@ import (
 	"testing_trainer/internal/app/progress"
 	"testing_trainer/internal/app/time_swticher"
 	"testing_trainer/internal/usecase/goals_checker"
+	"testing_trainer/internal/usecase/progress_adder"
+	"testing_trainer/internal/usecase/progress_getter"
+	"testing_trainer/internal/usecase/progress_recalculator"
 	"testing_trainer/internal/usecase/time_switcher"
 	"testing_trainer/internal/usecase/user"
 	"testing_trainer/middlewares"
 	"time"
 )
 
-func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress.UseCase, timeSwitcher time_switcher.UseCase) *gin.Engine {
+func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress_adder.UseCase, progressGetter progress_getter.ProgressGetter, progressRecalculator progress_recalculator.UseCase, timeSwitcher time_switcher.UseCase) *gin.Engine {
 	r := gin.Default()
 
 	docs.SwaggerInfo.BasePath = "/api/v1"
@@ -40,7 +43,7 @@ func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	habit.NewHabitHandler(protectedHabitHandlers, habitUc)
-	progress.NewProgressHandler(protectedHabitHandlers, progressUc)
+	progress.NewProgressHandler(protectedHabitHandlers, progressUc, progressGetter)
 	time_swticher.NewHandler(protectedTimeSwitchHandlers, timeSwitcher)
 	return r
 }
@@ -83,8 +86,12 @@ func runCheckGoalsScheduler(checker goals_checker.Checker) (gocron.Scheduler, er
 // @Tags version
 // @Accept json
 // @Produce json
-// @Success 200 {object} map[string]string
+// @Success 200 {object} VersionResponse "Successful response"
 // @Router /version [get]
 func getVersion(c *gin.Context) {
-	c.JSON(200, gin.H{"version": "1.0.0"})
+	c.JSON(200, VersionResponse{Version: "1.0.0"})
+}
+
+type VersionResponse struct {
+	Version string `json:"version" example:"1.0.0"`
 }
