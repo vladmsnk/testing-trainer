@@ -117,15 +117,13 @@ func (i *Implementation) RecalculateFutureProgressesByGoalUpdate(ctx context.Con
 
 		if currentPeriodExecCnt < newGoal.TimesPerFrequency {
 			basep.TotalCompletedTimes += currentDayExecutionCount
-		} else if currentPeriodExecCnt == newGoal.TimesPerFrequency {
+		} else if currentPeriodExecCnt >= newGoal.TimesPerFrequency {
 			basep.TotalCompletedTimes += currentDayExecutionCount
 			basep.TotalCompletedPeriods += 1
 			basep.CurrentStreak += 1
 			if basep.CurrentStreak > basep.MostLongestStreak {
 				basep.MostLongestStreak = basep.CurrentStreak
 			}
-		} else {
-			continue
 		}
 
 		basep.Id = int(snapshot.ProgressID)
