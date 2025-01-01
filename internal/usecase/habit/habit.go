@@ -46,6 +46,8 @@ type ProgressGetter interface {
 }
 
 type ProgressRecalculator interface {
+	RecalculateCurrentProgress(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+	RecalculateFutureProgresses(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 }
 
@@ -209,9 +211,14 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 				return fmt.Errorf("storage.UpdateGoal: %w", err)
 			}
 
-			err = i.progressRecalculator.RecalculateFutureProgressesByGoalUpdate(ctx, username, *currentGoal, *newGoal, currentTime)
+			err = i.progressRecalculator.RecalculateCurrentProgress(ctx, username, *currentGoal, *newGoal, currentTime)
 			if err != nil {
-				return fmt.Errorf("progressManager.RecalculateFutureProgressesByGoalUpdate: %w", err)
+				return fmt.Errorf("progressRecalculator.RecalculateCurrentProgress: %w", err)
+			}
+
+			err = i.progressRecalculator.RecalculateFutureProgresses(ctx, username, *currentGoal, *newGoal, currentTime)
+			if err != nil {
+				return fmt.Errorf("progressManager.RecalculateFutureProgresses: %w", err)
 			}
 		}
 

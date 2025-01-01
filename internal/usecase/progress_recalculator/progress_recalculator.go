@@ -14,6 +14,8 @@ import (
 
 type UseCase interface {
 	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+	RecalculateFutureProgresses(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+	RecalculateCurrentProgress(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 }
 
 type UserUseCase interface {
@@ -133,6 +135,115 @@ func (i *Implementation) RecalculateFutureProgressesByGoalUpdate(ctx context.Con
 		if err != nil {
 			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
 		}
+	}
+
+	return nil
+}
+
+func (i *Implementation) RecalculateCurrentProgress(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error {
+	previousDayTime := currentTime.AddDate(0, 0, -1)
+
+	baseProgress, err := i.progressGetter.GetProgressBySnapshot(ctx, prevGoal.Id, username, previousDayTime)
+	if err != nil {
+		return fmt.Errorf("i.progressGetter.GetProgressBySnapshot: %w", err)
+	}
+
+	currentProgress, err := i.progressGetter.GetProgressBySnapshot(ctx, prevGoal.Id, username, currentTime)
+	if err != nil {
+		return fmt.Errorf("i.progressGetter.GetProgressBySnapshot: %w", err)
+	}
+
+	currentDayExecutionCount, err := i.storage.GetCurrentDayExecutionCount(ctx, prevGoal, currentTime)
+	if err != nil {
+		return fmt.Errorf("i.storage.GetCurrentDayExecutionCount: %w", err)
+	}
+
+	currentPeriodExecCnt, err := i.storage.GetCurrentPeriodExecutionCount(ctx, prevGoal, currentTime)
+	if err != nil {
+		return fmt.Errorf("i.storage.GetCurrentPeriodExecutionCount: %w", err)
+	}
+
+	baseProgress.Id = currentProgress.Id
+
+	if currentPeriodExecCnt < newGoal.TimesPerFrequency {
+		baseProgress.TotalCompletedTimes += currentDayExecutionCount
+
+		err = i.storage.UpdateProgressByID(ctx, baseProgress)
+		if err != nil {
+			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
+		}
+	} else if currentPeriodExecCnt >= newGoal.TimesPerFrequency {
+		baseProgress.TotalCompletedTimes += currentDayExecutionCount
+		baseProgress.TotalCompletedPeriods += 1
+		baseProgress.CurrentStreak += 1
+		if baseProgress.CurrentStreak > baseProgress.MostLongestStreak {
+			baseProgress.MostLongestStreak = baseProgress.CurrentStreak
+		}
+
+		err = i.storage.UpdateProgressByID(ctx, baseProgress)
+		if err != nil {
+			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (i *Implementation) RecalculateFutureProgresses(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error {
+	baseProgress, err := i.progressGetter.GetProgressBySnapshot(ctx, prevGoal.Id, username, currentTime)
+	if err != nil {
+		return fmt.Errorf("i.progressGetter.GetProgressBySnapshot: %w", err)
+	}
+	snapshots, err := i.storage.GetFutureSnapshots(ctx, username, prevGoal.Id, currentTime)
+	if err != nil {
+		return fmt.Errorf("i.storage.GetFutureSnapshots: %w", err)
+	}
+
+	var baseProgresses []entities.Progress
+
+	for j, snapshot := range snapshots {
+		var basep entities.Progress
+
+		if j == 0 {
+			basep = baseProgress.DeepCopy()
+		} else {
+			basep = baseProgresses[j-1].DeepCopy()
+		}
+
+		currentDayExecutionCount, err := i.storage.GetCurrentDayExecutionCount(ctx, prevGoal, snapshot.CreatedAt)
+		if err != nil {
+			return fmt.Errorf("i.storage.GetCurrentDayExecutionCount: %w", err)
+		}
+
+		currentPeriodExecCnt, err := i.storage.GetCurrentPeriodExecutionCount(ctx, prevGoal, snapshot.CreatedAt)
+		if err != nil {
+			return fmt.Errorf("i.storage.GetCurrentPeriodExecutionCount: %w", err)
+		}
+
+		basep.Id = int(snapshot.ProgressID)
+
+		if currentPeriodExecCnt < newGoal.TimesPerFrequency {
+			basep.TotalCompletedTimes += currentDayExecutionCount
+
+			err = i.storage.UpdateProgressByID(ctx, basep)
+			if err != nil {
+				return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
+			}
+		} else if currentPeriodExecCnt >= newGoal.TimesPerFrequency {
+			basep.TotalCompletedTimes += currentDayExecutionCount
+			basep.TotalCompletedPeriods += 1
+			basep.CurrentStreak += 1
+			if basep.CurrentStreak > basep.MostLongestStreak {
+				basep.MostLongestStreak = basep.CurrentStreak
+			}
+
+			err = i.storage.UpdateProgressByID(ctx, basep)
+			if err != nil {
+				return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
+			}
+		}
+
+		baseProgresses = append(baseProgresses, basep)
 	}
 
 	return nil

@@ -33,6 +33,8 @@ type Getter interface {
 
 type ProgressRecalculator interface {
 	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+	RecalculateFutureProgresses(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+	RecalculateCurrentProgress(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 }
 
 type Transactor interface {
@@ -155,7 +157,7 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
 		}
 
-		err = i.progressRecalculator.RecalculateFutureProgressesByGoalUpdate(ctx, username, goal, goal, currentTime)
+		err = i.progressRecalculator.RecalculateFutureProgresses(ctx, username, goal, goal, currentTime)
 		if err != nil {
 			return fmt.Errorf("i.RecalculateFutureProgressesByGoalUpdate: %w", err)
 		}
