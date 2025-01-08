@@ -134,7 +134,7 @@ func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context,
 
 		currentPeriodProgress.Habit = habit
 		currentPeriodProgress.CurrentPeriodCompletedTimes = currentPeriodExecutionCount
-		currentPeriodProgress.NeedToCompleteTimes = habit.Goal.TimesPerFrequency
+		currentPeriodProgress.NeedToCompleteTimes = habit.Goal.TimesPerFrequency - currentPeriodExecutionCount
 		currentPeriodProgress.CurrentPeriod = habit.Goal.GetCurrentPeriod(currentTime) + 1
 
 		result = append(result, currentPeriodProgress)
