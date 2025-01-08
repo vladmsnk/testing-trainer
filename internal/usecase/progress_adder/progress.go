@@ -28,13 +28,15 @@ type UserUseCase interface {
 }
 
 type Getter interface {
-	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
+	GetProgressBySnapshot(ctx context.Context, goal entities.Goal, username string, currentTime time.Time) (entities.Progress, error)
 }
 
 type ProgressRecalculator interface {
 	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 	RecalculateFutureProgresses(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 	RecalculateCurrentProgress(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+
+	RecalculateAllProgressesForGoal(ctx context.Context, username string, goal entities.Goal, startTime time.Time) error
 }
 
 type Transactor interface {
@@ -88,6 +90,7 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 		if err != nil {
 			return fmt.Errorf("i.timeManager.GetCurrentTime: %w", err)
 		}
+		currentTime = currentTime.UTC()
 
 		_, err = i.userUc.GetUserByUsername(ctx, username)
 		if err != nil {
@@ -106,7 +109,7 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 			return ErrGoalCompleted
 		}
 
-		currentProgress, err := i.progressGetter.GetProgressBySnapshot(ctx, goal.Id, username, currentTime)
+		currentProgress, err := i.progressGetter.GetProgressBySnapshot(ctx, goal, username, currentTime)
 		if err != nil {
 			return fmt.Errorf("i.GetProgressBySnapshot: %w", err)
 		}
@@ -157,11 +160,11 @@ func (i *Implementation) AddHabitProgress(ctx context.Context, username string, 
 			return fmt.Errorf("i.storage.UpdateProgressByID: %w", err)
 		}
 
-		err = i.progressRecalculator.RecalculateFutureProgresses(ctx, username, goal, goal, currentTime)
+		startBound, _ := goal.GetSnapshotRange(currentTime.UTC())
+		err = i.progressRecalculator.RecalculateAllProgressesForGoal(ctx, username, goal, startBound.AddDate(0, 0, 1))
 		if err != nil {
 			return fmt.Errorf("i.RecalculateFutureProgressesByGoalUpdate: %w", err)
 		}
-		// add record to table execution_times_per_period
 
 		if goalIsCompleted {
 			err := i.storage.SetGoalCompleted(ctx, goal.Id)

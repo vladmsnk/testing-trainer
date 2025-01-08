@@ -32,7 +32,7 @@ type TimeManager interface {
 }
 
 type ProgressGetter interface {
-	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
+	GetProgressBySnapshot(ctx context.Context, goal entities.Goal, username string, currentTime time.Time) (entities.Progress, error)
 }
 
 func NewChecker(storage Storage, transactor Transactor, timeManager TimeManager, progressGetter ProgressGetter) Checker {
@@ -68,7 +68,7 @@ func (i *Implementation) CheckGoals(ctx context.Context) error {
 
 	for _, goal := range goalsToCheck {
 		err := i.transactor.RunRepeatableRead(ctx, func(ctxTX context.Context) error {
-			currentProgress, err := i.progressGetter.GetProgressBySnapshot(ctxTX, goal.Id, goalsCheckerUser, currentTime)
+			currentProgress, err := i.progressGetter.GetProgressBySnapshot(ctxTX, goal, goalsCheckerUser, currentTime)
 			if err != nil {
 				return fmt.Errorf("i.progressManager.GetProgressBySnapshot: %w", err)
 			}

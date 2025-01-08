@@ -13,6 +13,7 @@ type Progress struct {
 	CurrentStreak         int
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
+	ProgressSnapshot      ProgressSnapshot
 }
 
 func (p *Progress) DeepCopy() Progress {
