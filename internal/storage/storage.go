@@ -919,6 +919,9 @@ desc limit 1;
 
 	err := pool.QueryRow(ctx, query, goalID).Scan(&createdAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return time.Time{}, ErrNotFound
+		}
 		return time.Time{}, fmt.Errorf("db.QueryRow: %w", err)
 	}
 

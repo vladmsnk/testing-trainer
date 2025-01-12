@@ -6,6 +6,7 @@ package progress_recalculator
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing_trainer/internal/storage"
 	"time"
@@ -260,7 +261,11 @@ func (i *Implementation) RecalculateAllProgressesForGoal(ctx context.Context, us
 
 	lastSnapshotTime, err := i.storage.GetTimeOfMostRecentSnapshot(ctx, goal.Id)
 	if err != nil {
-		return fmt.Errorf("i.storage.GetTimeOfMostRecentSnapshot: %w", err)
+		if errors.Is(err, storage.ErrNotFound) {
+			lastSnapshotTime = goal.StartTrackingAt
+		} else {
+			return fmt.Errorf("i.storage.GetTimeOfMostRecentSnapshot: %w", err)
+		}
 	}
 
 	stopTrackingTime := lastSnapshotTime.AddDate(0, 0, 1)
