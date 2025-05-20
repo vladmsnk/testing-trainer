@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/go-co-op/gocron/v2"
-	"github.com/jackc/pgx/v5/pgxpool"
-	swaggerfiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
 	"log"
+	"os"
+	"strings"
 	"testing_trainer/cmd/docs"
 	"testing_trainer/config"
 	"testing_trainer/internal/app/auth"
@@ -23,10 +20,43 @@ import (
 	"testing_trainer/internal/usecase/user"
 	"testing_trainer/middlewares"
 	"time"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func setupRouter(userUc user.UseCase, habitUc habit.UseCase, progressUc progress_adder.UseCase, progressGetter progress_getter.ProgressGetter, progressRecalculator progress_recalculator.UseCase, timeSwitcher time_switcher.UseCase) *gin.Engine {
 	r := gin.Default()
+
+	// Load allowed origins from environment variable
+	allowedOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+
+	// Add CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: allowedOrigins,
+		AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Accept",
+			"Authorization",
+			"X-Requested-With",
+			"Access-Control-Request-Method",
+			"Access-Control-Request-Headers",
+		},
+		ExposeHeaders: []string{
+			"Content-Length",
+			"Content-Type",
+			"Authorization",
+			"X-Requested-With",
+		},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	docs.SwaggerInfo.BasePath = "/api/v1"
 
