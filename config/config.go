@@ -2,16 +2,19 @@ package config
 
 import (
 	"fmt"
-	"github.com/joho/godotenv"
 	"os"
 
-	"gopkg.in/yaml.v3"
+	"github.com/joho/godotenv"
+
 	"strconv"
+
+	"gopkg.in/yaml.v3"
 )
 
 const (
-	pathToConfig  = "./etc/config.yaml"
-	pathToEnvFile = "./etc/config.env"
+	pathToConfig    = "./etc/config.yaml"
+	pathToDevEnv    = "./etc/dev.env"
+	pathToConfigEnv = "./etc/config.env"
 )
 
 type Config struct {
@@ -50,32 +53,44 @@ func Init() error {
 	return nil
 }
 
+// getEnvOrDefault returns the environment variable value if set, otherwise returns the default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func InitConfigWithEnvs() error {
-	var envs map[string]string
-
-	err := godotenv.Load(pathToEnvFile)
-	if err != nil {
-		return fmt.Errorf("godotenv.Load: %w", err)
-	}
-	envs, err = godotenv.Read(pathToEnvFile)
-	if err != nil {
-		return fmt.Errorf("godotenv.Load: %w", err)
+	// Determine which env file to use based on ENV variable
+	// ENV=production uses config.env, otherwise uses dev.env (default)
+	envFile := pathToDevEnv
+	if os.Getenv("ENV") == "production" {
+		envFile = pathToConfigEnv
 	}
 
-	pgHost := envs["PG_HOST"]
-	pgPort, err := strconv.Atoi(envs["PG_PORT"])
-	if err != nil {
-		return fmt.Errorf("strconv.Atoi: %w", err)
-	}
-	pgUser := envs["PG_USER"]
-	pgPassword := envs["PG_PASSWORD"]
-	pgDatabase := envs["PG_DATABASE"]
-	pgSSLMode := envs["PG_SSLMODE"]
+	// Load the .env file if it exists (provides defaults)
+	_ = godotenv.Load(envFile) // Ignore error if file doesn't exist
 
-	httpHost := envs["HTTP_HOST"]
-	httpPort, err := strconv.Atoi(envs["HTTP_PORT"])
+	// Get values prioritizing environment variables over file values
+	pgHost := getEnvOrDefault("PG_HOST", "localhost")
+	pgPortStr := getEnvOrDefault("PG_PORT", "5432")
+	pgUser := getEnvOrDefault("PG_USER", "postgres")
+	pgPassword := getEnvOrDefault("PG_PASSWORD", "postgres")
+	pgDatabase := getEnvOrDefault("PG_DATABASE", "db")
+	pgSSLMode := getEnvOrDefault("PG_SSLMODE", "disable")
+
+	httpHost := getEnvOrDefault("HTTP_HOST", "0.0.0.0")
+	httpPortStr := getEnvOrDefault("HTTP_PORT", "7001")
+
+	pgPort, err := strconv.Atoi(pgPortStr)
 	if err != nil {
-		return fmt.Errorf("strconv.Atoi: %w", err)
+		return fmt.Errorf("invalid PG_PORT: %w", err)
+	}
+
+	httpPort, err := strconv.Atoi(httpPortStr)
+	if err != nil {
+		return fmt.Errorf("invalid HTTP_PORT: %w", err)
 	}
 
 	ConfigStruct = Config{

@@ -12,10 +12,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/app -v ./cmd/app
 
 FROM scratch as final
 WORKDIR /
-COPY --from=build /bin/app /app
+COPY --from=build /bin/app /bin/app
 COPY etc/config.yaml /etc/config.yaml
 COPY etc/config.env /etc/config.env
+COPY etc/dev.env /etc/dev.env
 
 EXPOSE 7001
+EXPOSE 8001
 
-ENTRYPOINT ["/app"]
+ENTRYPOINT ["/bin/app"]
