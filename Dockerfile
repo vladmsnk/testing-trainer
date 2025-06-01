@@ -13,7 +13,6 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /bin/app -v ./cmd/app
 FROM scratch as final
 WORKDIR /
 COPY --from=build /bin/app /bin/app
-COPY etc/config.yaml /etc/config.yaml
 COPY etc/config.env /etc/config.env
 COPY etc/dev.env /etc/dev.env
 

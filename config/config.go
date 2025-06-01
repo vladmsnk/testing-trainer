@@ -3,36 +3,33 @@ package config
 import (
 	"fmt"
 	"os"
-
-	"github.com/joho/godotenv"
-
 	"strconv"
 
-	"gopkg.in/yaml.v3"
+	"github.com/joho/godotenv"
 )
 
 const (
-	pathToConfig    = "./etc/config.yaml"
 	pathToDevEnv    = "./etc/dev.env"
 	pathToConfigEnv = "./etc/config.env"
 )
 
 type Config struct {
-	HTTP Http     `yaml:"http"`
-	PG   Postgres `yaml:"postgres"`
+	HTTP Http
+	PG   Postgres
 }
 
 type Http struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+	Host string
+	Port int
 }
+
 type Postgres struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
-	Database string `yaml:"database"`
-	SSLMode  string `yaml:"sslmode"`
+	Host     string
+	Port     int
+	User     string
+	Password string
+	Database string
+	SSLMode  string
 }
 
 func (p *Postgres) GetConnectionString() string {
@@ -40,18 +37,6 @@ func (p *Postgres) GetConnectionString() string {
 }
 
 var ConfigStruct Config
-
-func Init() error {
-	rawYaml, err := os.ReadFile(pathToConfig)
-	if err != nil {
-		return err
-	}
-
-	if err = yaml.Unmarshal(rawYaml, &ConfigStruct); err != nil {
-		return err
-	}
-	return nil
-}
 
 // getEnvOrDefault returns the environment variable value if set, otherwise returns the default value
 func getEnvOrDefault(key, defaultValue string) string {
