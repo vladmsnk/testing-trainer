@@ -75,6 +75,32 @@ services:
         condition: service_healthy
     networks:
       - net
+  cleaner:
+    build:
+      context: .
+      dockerfile: Dockerfile.cleaner
+    container_name: 'cleaner-container'
+    restart: always
+    environment:
+      ENV: "production"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - net
 volumes:
   pg-data:
 
