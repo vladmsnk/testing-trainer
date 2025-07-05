@@ -1,0 +1,61 @@
+networks:
+  net-prod:
+    driver: bridge
+
+services:
+  postgres:
+    container_name: postgres-prod
+    image: postgres
+    volumes:
+      - pg-data-prod:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'db'
+    ports:
+      - 5433:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    networks:
+      - net-prod
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+    container_name: 'app-container-prod'
+    restart: unless-stopped
+    hostname: server-prod
+    environment:
+      TOKEN_MINUTE_LIFESPAN: 1440
+      REFRESH_HOUR_LIFESPAN: 168
+      API_SECRET: ${API_SECRET:-api-secret-prod}
+      REFRESH_SECRET: ${REFRESH_SECRET:-refresh-secret-prod}
+      DATABASE_URL: postgres://postgres:postgres@postgres-prod:5432/db?sslmode=disable
+    ports:
+      - 7002:7001
+    command: ./app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - net-prod
+volumes:
+  pg-data-prod:
+
+
