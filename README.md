@@ -46,14 +46,20 @@ git clone <repository-url>
 cd testing_trainer
 ```
 
-2. Start the services using Docker Compose:
+2. Start the services using Docker Compose. Two configurations are available and can run at the same time:
 ```bash
-docker-compose up -d
+# development configuration
+docker-compose -f docker-compose.yaml up -d
+# production-like configuration
+docker-compose -f docker-compose.prod.yaml up -d
 ```
 
-This will start:
-- PostgreSQL database on port 5432
-- Application server on port 7001
+`docker-compose.yaml` exposes the database on port `5432` and the API on `7001`.
+`docker-compose.prod.yaml` exposes the database on port `5433` and the API on `7002`.
+
+Each compose file loads its own environment settings:
+`docker-compose.yaml` mounts `./etc/config.env` while `docker-compose.prod.yaml`
+mounts `./etc/prod.env`.
 
 ## Environment Variables
 

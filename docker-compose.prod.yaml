@@ -50,6 +50,8 @@ services:
     ports:
       - 7002:7001
     command: ./app
+    volumes:
+      - ./etc/prod.env:/etc/config.env:ro
     depends_on:
       postgres:
         condition: service_healthy
