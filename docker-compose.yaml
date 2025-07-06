@@ -49,7 +49,10 @@ services:
     ports:
       - 7001:7001
     command: ./app
-    network_mode: "host"
+    volumes:
+      - ./etc/config.env:/etc/config.env:ro
+    networks:
+      - net
 volumes:
   pg-data:
 
