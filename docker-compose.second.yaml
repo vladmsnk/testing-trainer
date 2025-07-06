@@ -60,6 +60,8 @@ services:
     hostname: server
     environment:
       ENV: "production"
+      PG_HOST: postgres2
+      PG_PORT: 5432
     ports:
       - 7002:7001   # HTTP port
       - 8002:8001   # HTTPS port
@@ -83,6 +85,8 @@ services:
     restart: always
     environment:
       ENV: "production"
+      PG_HOST: postgres2
+      PG_PORT: 5432
     deploy:
       resources:
         limits:
