@@ -63,7 +63,7 @@ services:
       PG_HOST: postgres2
       PG_PORT: 5432
     ports:
-      - 7002:7001   # HTTP port
+      - 7004:7001   # HTTP port
       - 8002:8001   # HTTPS port
     volumes:
       - type: bind
