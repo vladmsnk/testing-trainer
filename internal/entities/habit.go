@@ -96,7 +96,16 @@ func FrequencyTypeFromString(s string) FrequencyType {
 	default:
 		return UndefinedFrequencyType
 	}
+}
 
+func (g Goal) GetSnapshotRange(currentTime time.Time) (time.Time, time.Time) {
+	var (
+		utcTime   = currentTime.UTC()
+		dayOffset = utcTime.Sub(g.StartTrackingAt).Hours() / 24
+	)
+
+	return g.StartTrackingAt.AddDate(0, 0, int(dayOffset)),
+		g.StartTrackingAt.AddDate(0, 0, int(dayOffset)).Add(23 * time.Hour).Add(59 * time.Minute)
 }
 
 func (g Goal) GetCurrentPeriod(currentTime time.Time) int {
@@ -107,17 +116,17 @@ func (g Goal) GetCurrentPeriod(currentTime time.Time) int {
 
 	switch g.FrequencyType {
 	case Daily:
-		// Calculate the number of full days since createdAt
+		// Calculate the number of full days since StartTrackingAt
 		return int(dayOffset)
 
 	case Weekly:
-		// Calculate the number of full weeks since createdAt
-		return int(dayOffset / (24 * 7))
+		// Calculate the number of full weeks since StartTrackingAt
+		return int(dayOffset / 7)
 
 	case Monthly:
-		// Calculate the number of full 31-day months since createdAt
-		daysSinceCreated := int(dayOffset)
-		return daysSinceCreated / 31 // Each "month" is treated as 31 days
+		// Calculate the number of full 31-day months since StartTrackingAt
+		daysSinceStartTracking := int(dayOffset)
+		return daysSinceStartTracking / 31 // Each "month" is treated as 31 days
 
 	default:
 		return 0

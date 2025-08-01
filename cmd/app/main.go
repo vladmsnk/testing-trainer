@@ -9,7 +9,6 @@ import (
 	"testing_trainer/config"
 	"testing_trainer/internal/storage"
 	"testing_trainer/internal/storage/transactor"
-	"testing_trainer/internal/usecase/goals_checker"
 	"testing_trainer/internal/usecase/habit"
 	"testing_trainer/internal/usecase/progress_adder"
 	"testing_trainer/internal/usecase/progress_getter"
@@ -64,19 +63,19 @@ func main() {
 		progressRecalculator = progress_recalculator.NewRecalculator(authUc, store, progressGetter, tx, timeManager)
 		processUc            = progress_adder.New(authUc, store, progressGetter, tx, timeManager, progressRecalculator)
 
-		habitUc        = habit.New(store, authUc, tx, timeManager, progressGetter, progressRecalculator)
-		goalsCheckerUC = goals_checker.NewChecker(store, tx, timeManager, progressGetter)
+		habitUc = habit.New(store, authUc, tx, timeManager, progressGetter, progressRecalculator)
+		//goalsCheckerUC = goals_checker.NewChecker(store, tx, timeManager, progressGetter)
 		timeSwitcherUC = time_switcher.New(timeManager)
 	)
 
-	scheduler, err := runCheckGoalsScheduler(goalsCheckerUC)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		scheduler.Shutdown()
-	}()
-	scheduler.Start()
+	//scheduler, err := runCheckGoalsScheduler(goalsCheckerUC)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//defer func() {
+	//	scheduler.Shutdown()
+	//}()
+	//scheduler.Start()
 
 	router := setupRouter(authUc, habitUc, processUc, progressGetter, progressRecalculator, timeSwitcherUC)
 	log.Println("Swagger is available on http://" + config.ConfigStruct.HTTP.Host + ":" + strconv.Itoa(config.ConfigStruct.HTTP.Port) + "/swagger/index.html")

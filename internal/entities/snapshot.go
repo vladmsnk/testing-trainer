@@ -7,4 +7,6 @@ type ProgressSnapshot struct {
 	CreatedAt  time.Time
 	ProgressID int64
 	GoalID     int
+	StartBound time.Time
+	EndBound   time.Time
 }

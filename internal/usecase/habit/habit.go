@@ -42,11 +42,15 @@ type Transactor interface {
 }
 
 type ProgressGetter interface {
-	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
+	GetProgressBySnapshot(ctx context.Context, goal entities.Goal, username string, currentTime time.Time) (entities.Progress, error)
 }
 
 type ProgressRecalculator interface {
+	RecalculateCurrentProgress(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+	RecalculateFutureProgresses(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
 	RecalculateFutureProgressesByGoalUpdate(ctx context.Context, username string, prevGoal, newGoal entities.Goal, currentTime time.Time) error
+
+	RecalculateAllProgressesForGoal(ctx context.Context, username string, goal entities.Goal, startTime time.Time) error
 }
 
 type Storage interface {
@@ -167,11 +171,6 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 			return ErrUpdateHabitFromFuture
 		}
 
-		currentTime, err := i.timeManager.GetCurrentTime(ctx, username)
-		if err != nil {
-			return fmt.Errorf("i.timeManager.GetCurrentTime: %w", err)
-		}
-
 		_, err = i.userUc.GetUserByUsername(ctx, username)
 		if err != nil {
 			if errors.Is(err, storage.ErrNotFound) {
@@ -202,6 +201,8 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 
 		newGoal := habit.Goal
 		newGoal.Id = currentGoal.Id
+		newGoal.StartTrackingAt = currentGoal.StartTrackingAt
+		newGoal.NextCheckDate = currentGoal.NextCheckDate
 
 		if entities.IsGoalChanged(currentGoal, newGoal) {
 			err := i.storage.UpdateGoal(ctx, *newGoal)
@@ -209,9 +210,9 @@ func (i *Implementation) UpdateHabitV2(ctx context.Context, username string, hab
 				return fmt.Errorf("storage.UpdateGoal: %w", err)
 			}
 
-			err = i.progressRecalculator.RecalculateFutureProgressesByGoalUpdate(ctx, username, *currentGoal, *newGoal, currentTime)
+			err = i.progressRecalculator.RecalculateAllProgressesForGoal(ctx, username, *newGoal, currentGoal.StartTrackingAt)
 			if err != nil {
-				return fmt.Errorf("progressManager.RecalculateFutureProgressesByGoalUpdate: %w", err)
+				return fmt.Errorf("progressRecalculator.RecalculateAllProgressesForGoal: %w", err)
 			}
 		}
 

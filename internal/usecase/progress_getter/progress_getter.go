@@ -17,7 +17,7 @@ var (
 )
 
 type ProgressGetter interface {
-	GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error)
+	GetProgressBySnapshot(ctx context.Context, goal entities.Goal, username string, currentTime time.Time) (entities.Progress, error)
 	GetHabitProgress(ctx context.Context, username string, habitId int) (entities.ProgressWithGoal, error)
 	GetCurrentProgressForAllUserHabits(ctx context.Context, username string) ([]entities.CurrentPeriodProgress, error)
 }
@@ -89,7 +89,7 @@ func (i *Implementation) GetHabitProgress(ctx context.Context, username string, 
 
 	var progress entities.Progress
 
-	progress, err = i.GetProgressBySnapshot(ctx, habitGoal.Id, username, currentTime)
+	progress, err = i.GetProgressBySnapshot(ctx, *habit.Goal, username, currentTime)
 	if err != nil {
 		return entities.ProgressWithGoal{}, fmt.Errorf("i.GetProgressBySnapshot: %w", err)
 	}
@@ -134,7 +134,7 @@ func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context,
 
 		currentPeriodProgress.Habit = habit
 		currentPeriodProgress.CurrentPeriodCompletedTimes = currentPeriodExecutionCount
-		currentPeriodProgress.NeedToCompleteTimes = habit.Goal.TimesPerFrequency
+		currentPeriodProgress.NeedToCompleteTimes = habit.Goal.TimesPerFrequency - currentPeriodExecutionCount
 		currentPeriodProgress.CurrentPeriod = habit.Goal.GetCurrentPeriod(currentTime) + 1
 
 		result = append(result, currentPeriodProgress)
@@ -154,14 +154,16 @@ func (i *Implementation) GetCurrentProgressForAllUserHabits(ctx context.Context,
 // снимок создается на основе предыдущего дня
 // должен быть базовый прогресс, от которого будут создаваться все снимки
 // если нет никакого снимка создается пустой прогресс
-func (i *Implementation) GetProgressBySnapshot(ctx context.Context, goalID int, username string, currentTime time.Time) (entities.Progress, error) {
-	snapshot, err := i.storage.GetCurrentSnapshot(ctx, username, goalID, currentTime)
+func (i *Implementation) GetProgressBySnapshot(ctx context.Context, goal entities.Goal, username string, currentTime time.Time) (entities.Progress, error) {
+	currentSnapshotStart, currentSnapshotEnd := goal.GetSnapshotRange(currentTime)
+
+	snapshot, err := i.storage.GetCurrentSnapshot(ctx, username, goal.Id, currentTime.UTC())
 	if err != nil {
 		if !errors.Is(err, storage.ErrNotFound) {
 			return entities.Progress{}, fmt.Errorf("i.storage.GetCurrentSnapshot: %w", err)
 		}
 
-		recentSnapshot, err := i.storage.GetMostRecentSnapshot(ctx, username, goalID, currentTime)
+		recentSnapshot, err := i.storage.GetMostRecentSnapshot(ctx, username, goal.Id, currentTime.UTC())
 		if err != nil {
 			if !errors.Is(err, storage.ErrNotFound) {
 				return entities.Progress{}, fmt.Errorf("i.storage.GetMostRecentSnapshot: %w", err)
@@ -169,9 +171,9 @@ func (i *Implementation) GetProgressBySnapshot(ctx context.Context, goalID int, 
 
 			emptyProgress := entities.Progress{
 				Username:  username,
-				GoalID:    goalID,
-				CreatedAt: currentTime,
-				UpdatedAt: currentTime,
+				GoalID:    goal.Id,
+				CreatedAt: currentTime.UTC(),
+				UpdatedAt: currentTime.UTC(),
 			}
 
 			newProgressID, err := i.storage.CreateProgress(ctx, emptyProgress)
@@ -184,8 +186,10 @@ func (i *Implementation) GetProgressBySnapshot(ctx context.Context, goalID int, 
 			err = i.storage.CreateSnapshot(ctx, entities.ProgressSnapshot{
 				Username:   username,
 				ProgressID: newProgressID,
-				CreatedAt:  currentTime,
-				GoalID:     goalID,
+				CreatedAt:  currentTime.UTC(),
+				GoalID:     goal.Id,
+				StartBound: currentSnapshotStart,
+				EndBound:   currentSnapshotEnd,
 			})
 			if err != nil {
 				return entities.Progress{}, fmt.Errorf("i.storage.CreateSnapshot: %w", err)
@@ -208,12 +212,13 @@ func (i *Implementation) GetProgressBySnapshot(ctx context.Context, goalID int, 
 		}
 
 		progress.Id = int(newProgressID)
-
 		err = i.storage.CreateSnapshot(ctx, entities.ProgressSnapshot{
 			Username:   username,
 			ProgressID: newProgressID,
-			CreatedAt:  currentTime,
-			GoalID:     goalID,
+			CreatedAt:  currentTime.UTC(),
+			GoalID:     goal.Id,
+			StartBound: currentSnapshotStart,
+			EndBound:   currentSnapshotEnd,
 		})
 		if err != nil {
 			return entities.Progress{}, fmt.Errorf("i.storage.CreateSnapshot: %w", err)

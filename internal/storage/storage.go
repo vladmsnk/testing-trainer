@@ -342,16 +342,16 @@ insert into goal_logs (goal_id, record_created_at) values ($1, $2);
 	return nil
 }
 
-func calculatePeriodRange(createdAt time.Time, frequencyType entities.FrequencyType, periodOffset int) (start time.Time, end time.Time) {
+func CalculatePeriodRange(startTrackingAtUTC time.Time, frequencyType entities.FrequencyType, periodOffset int) (start time.Time, end time.Time) {
 	switch frequencyType {
 	case entities.Daily:
-		start = createdAt.AddDate(0, 0, periodOffset)
+		start = startTrackingAtUTC.AddDate(0, 0, periodOffset)
 		end = start.AddDate(0, 0, 1)
 	case entities.Weekly:
-		start = createdAt.AddDate(0, 0, periodOffset*7)
+		start = startTrackingAtUTC.AddDate(0, 0, periodOffset*7)
 		end = start.AddDate(0, 0, 7)
 	case entities.Monthly:
-		start = createdAt.AddDate(0, periodOffset, 0)
+		start = startTrackingAtUTC.AddDate(0, periodOffset, 0)
 		end = start.AddDate(0, 1, 0)
 	}
 	return start, end
@@ -377,17 +377,18 @@ and record_created_at < $3;
 	return count, nil
 }
 
-func (s *Storage) GetCurrentDayExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error) {
+func (s *Storage) GetCurrentDayExecutionCount(ctx context.Context, goal entities.Goal, currentDayStartTime, currentDayEndTime time.Time) (int, error) {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
 select count(*) 
 from goal_logs 
 where goal_id = $1 
-and record_created_at::date = $2::date
+and record_created_at >= $2
+and record_created_at <= $3;
 `
 	var count int
-	err := pool.QueryRow(ctx, query, goal.Id, currentTime).Scan(&count)
+	err := pool.QueryRow(ctx, query, goal.Id, currentDayStartTime, currentDayEndTime).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("db.QueryRow: %w", err)
 	}
@@ -403,53 +404,27 @@ func (s *Storage) GetPreviousPeriodExecutionCount(ctx context.Context, goal enti
 		return 0, nil
 	}
 
-	start, end := calculatePeriodRange(goal.StartTrackingAt, goal.FrequencyType, currentPeriod-1)
-
-	var executionCountForPreviousPeriod int
+	start, end := CalculatePeriodRange(goal.StartTrackingAt, goal.FrequencyType, currentPeriod-1)
 
 	currentGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, goal.Id, start, end)
 	if err != nil {
 		return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
 	}
-	executionCountForPreviousPeriod += currentGoalExecutionCount
-	for _, previousGoalID := range goal.PreviousGoalIDs {
-		specificGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, previousGoalID, start, end)
-		if err != nil {
-			return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
-		}
 
-		executionCountForPreviousPeriod += specificGoalExecutionCount
-	}
-
-	return executionCountForPreviousPeriod, nil
+	return currentGoalExecutionCount, nil
 }
 
 func (s *Storage) GetCurrentPeriodExecutionCount(ctx context.Context, goal entities.Goal, currentTime time.Time) (int, error) {
 	currentPeriod := goal.GetCurrentPeriod(currentTime)
 
-	start, end := calculatePeriodRange(goal.StartTrackingAt, goal.FrequencyType, currentPeriod)
+	start, _ := CalculatePeriodRange(goal.StartTrackingAt, goal.FrequencyType, currentPeriod)
 
-	var executionCountForCurrentPeriod int
-
-	// Получаем количество выполнений текущей цели за текущий период
-	currentGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, goal.Id, start, end)
+	currentGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, goal.Id, start, currentTime)
 	if err != nil {
 		return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
 	}
-	executionCountForCurrentPeriod += currentGoalExecutionCount
 
-	// Получаем количество выполнений предыдущих целей за текущий период
-	for _, previousGoalID := range goal.PreviousGoalIDs {
-		specificGoalExecutionCount, err := s.getExecutionCountForPeriod(ctx, previousGoalID, start, end)
-		if err != nil {
-			return 0, fmt.Errorf("s.getExecutionCountForPeriod: %w", err)
-		}
-
-		executionCountForCurrentPeriod += specificGoalExecutionCount
-	}
-
-	// В итоге получается общее количество выполнений целей за текущий период по всем целям, которые были активны
-	return executionCountForCurrentPeriod, nil
+	return currentGoalExecutionCount, nil
 }
 
 func (s *Storage) GetCurrentProgress(ctx context.Context, goalId int) (entities.Progress, error) {
@@ -828,10 +803,10 @@ func (s *Storage) CreateSnapshot(ctx context.Context, snapshot entities.Progress
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
-	insert into progress_snapshots (username, progress_id, goal_id, created_at)
-	values ($1, $2, $3, $4);
+	insert into progress_snapshots (username, progress_id, goal_id, created_at, start_bound, end_bound)
+	values ($1, $2, $3, $4, $5, $6);
 `
-	_, err := pool.Exec(ctx, query, snapshot.Username, snapshot.ProgressID, snapshot.GoalID, snapshot.CreatedAt)
+	_, err := pool.Exec(ctx, query, snapshot.Username, snapshot.ProgressID, snapshot.GoalID, snapshot.CreatedAt, snapshot.StartBound, snapshot.EndBound)
 	if err != nil {
 		return fmt.Errorf("db.Exec: %w", err)
 	}
@@ -850,7 +825,7 @@ select
 from progress_snapshots
 where username = $1
 	  and goal_id = $2
-and created_at::date <= $3::date 
+and created_at <= $3
 order by created_at desc
 limit 1
 `
@@ -866,7 +841,7 @@ limit 1
 	return snapshot, nil
 }
 
-func (s *Storage) GetCurrentSnapshot(ctx context.Context, username string, goalID int, currentTime time.Time) (entities.ProgressSnapshot, error) {
+func (s *Storage) GetCurrentSnapshot(ctx context.Context, username string, goalID int, currentTIme time.Time) (entities.ProgressSnapshot, error) {
 	pool := s.queryEngineProvider.GetQueryEngine(ctx)
 
 	query := `
@@ -874,15 +849,18 @@ select
 	progress_id,
 	goal_id,
 	created_at,
-	username
+	username,
+	start_bound,
+	end_bound
 from progress_snapshots
 where username = $1
   and goal_id = $2 
-  and created_at::date = $3::date
+  and start_bound <= $3
+  and end_bound >= $3
 `
 
 	var snapshot entities.ProgressSnapshot
-	err := pool.QueryRow(ctx, query, username, goalID, currentTime).Scan(&snapshot.ProgressID, &snapshot.GoalID, &snapshot.CreatedAt, &snapshot.Username)
+	err := pool.QueryRow(ctx, query, username, goalID, currentTIme).Scan(&snapshot.ProgressID, &snapshot.GoalID, &snapshot.CreatedAt, &snapshot.Username, &snapshot.StartBound, &snapshot.EndBound)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return entities.ProgressSnapshot{}, ErrNotFound
@@ -924,6 +902,30 @@ where id = $1
 func (s *Storage) ApplyProgressChangeBySnapshotID(ctx context.Context, snapshotID int64, progressChange entities.ProgressChange) error {
 
 	return nil
+}
+
+func (s *Storage) GetTimeOfMostRecentSnapshot(ctx context.Context, goalID int) (time.Time, error) {
+	pool := s.queryEngineProvider.GetQueryEngine(ctx)
+
+	query := `
+select created_at
+from progress_snapshots
+where goal_id = $1 
+order by created_at
+desc limit 1;
+`
+
+	var createdAt time.Time
+
+	err := pool.QueryRow(ctx, query, goalID).Scan(&createdAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return time.Time{}, ErrNotFound
+		}
+		return time.Time{}, fmt.Errorf("db.QueryRow: %w", err)
+	}
+
+	return createdAt, nil
 }
 
 func (s *Storage) GetFutureSnapshots(ctx context.Context, username string, goalID int, currentTime time.Time) ([]entities.ProgressSnapshot, error) {
